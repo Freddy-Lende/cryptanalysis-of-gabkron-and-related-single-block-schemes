@@ -12,7 +12,7 @@ Provides:
                              kernel for a V-valued key of image rank k (t1-independent).
   decrypt(...)               full message recovery from a recovered key (no residual).
 
-Pure Python (python3, NOT Sage). Needs stab_structure.py.
+Pure Python (python3, NOT Sage). Needs structure.py.
 """
 import io, contextlib, random, functools, operator
 xor = operator.xor
