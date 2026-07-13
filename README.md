@@ -17,7 +17,7 @@ dependencies are required.
 
 ```
 .
-├── stab_structure.py
+├── structure.py
 ├── gabkron_attack_common.py
 │
 ├── verify_redthread_F32.py
