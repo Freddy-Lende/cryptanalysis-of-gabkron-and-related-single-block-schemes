@@ -17,7 +17,7 @@ dependencies are required.
 
 ```
 .
-├── structure.py
+├── stab_structure.py
 ├── gabkron_attack_common.py
 │
 ├── verify_redthread_F32.py
@@ -94,6 +94,7 @@ Complete worked example over `F_{2^6}`. The script prints:
 - all rank verifications.
 
 ### 'gabkron_attack_with_secret.py'
+
 Validates the structural witness predicted by the theory and the corresponding decryption once the witness has been constructed from the secret information. This script is intended as a correctness check of the theoretical results rather than a public-key implementation of the attack.
 ---
 
