@@ -93,9 +93,10 @@ Complete worked example over `F_{2^6}`. The script prints:
 - the recovered clean block,
 - all rank verifications.
 
-### `gabkron_attack_with_secret.py`
+### - `gabkron_attack_with_secret.py`: 
 
-Validates the structural witness predicted by the theory and the corresponding decryption once the witness has been constructed from the secret information. This script is intended as a correctness check of the theoretical results rather than a public-key implementation of the attack.
+Validates the structural witness predicted by the theory and the corresponding decryption once the witness has been constructed from the secret information. This script serves as a correctness check of the theoretical results rather than a public-key implementation of the attack.
+
 ---
 
 ## Key-recovery attack
