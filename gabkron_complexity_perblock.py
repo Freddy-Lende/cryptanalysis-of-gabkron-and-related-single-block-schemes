@@ -1,5 +1,5 @@
 """
-Corrected work factors in the OVER-DETERMINED Burle regime (reviewer's central point).
+Corrected work factors in the OVER-DETERMINED Burle regime.
 
 For a guess F in Gr_r(q,m), the recovery system has
     U = m*n*r    unknowns over F_q   (D in M_{n,m}(F), n the code length)
@@ -42,19 +42,19 @@ GAB = [
  ("new-GabKron-256",2,2,128,40,2,128,3,256,8),
 ]
 print("="*92)
-print(" GabKron per-block W(t1)  --- OVER-DETERMINED Burle regime  r* = floor(kp/n)")
+print(" GabKron per-block W(t1)  --- OVER-DETERMINED Burle regime  r_max = floor(kp/n)")
 print(" t1 not fixed for original sets -> representative t1 in [1,t2]: -I mid, -II = t2")
 print("="*92)
-print(f"{'scheme':<18}{'claimed':>8}{'t1':>4}{'t2':>4}{'r*':>4}{'W(2.37)':>10}{'W(3)':>9}  verdict")
+print(f"{'scheme':<18}{'claimed':>8}{'t1':>4}{'t2':>4}{'r_max':>4}{'W(2.37)':>10}{'W(3)':>9}  verdict")
 print("-"*92)
 for a in GAB:
     name,cl,t1,t2,r,w237,w3,ok = gabrow(*a)
     v = ("2.37:brk" if w237<cl else "2.37:sec")+", "+("3:brk" if w3<cl else "3:sec")
-    print(f"{name:<18}{cl:>8}{t1:>4}{t2:>4}{r:>4}{b(w237,cl):>10}{b(w3,cl):>9}  {v}"+("" if ok else " [r*<lam]"))
+    print(f"{name:<18}{cl:>8}{t1:>4}{t2:>4}{r:>4}{b(w237,cl):>10}{b(w3,cl):>9}  {v}"+("" if ok else " [r_max<lam]"))
 print("-"*92); print(" (*..* below claimed)")
 
-print("\n"+"="*92); print(" LGRH   r*=floor(k(n-g-k)/n)   lambda=2"); print("="*92)
-print(f"{'set':<12}{'claimed':>8}{'r*':>4}{'W(2.37)':>10}{'W(3)':>9}  verdict")
+print("\n"+"="*92); print(" LGRH   r_max=floor(k(n-g-k)/n)   lambda=2"); print("="*92)
+print(f"{'set':<12}{'claimed':>8}{'r_max':>4}{'W(2.37)':>10}{'W(3)':>9}  verdict")
 print("-"*92)
 for row in [singlerow("LGRH-128",98,89,10,11,2,2,128), singlerow("LGRH-192",165,122,14,14,2,2,192)]:
     name,cl,lam,r,w237,w3,ok = row
@@ -65,11 +65,11 @@ print("\n"+"="*92); print(" Modification II  (gamma=2)"); print("="*92)
 for (nm,m,n,k,cl) in [("ModII-132",88,88,48,132),("ModII-192",98,98,52,192),("ModII-279",129,129,65,279)]:
     for lam in (2,3):
         name,c,l,r,w237,w3,ok = singlerow(nm,m,n,k,2,2,lam,cl)
-        print(f"  {nm:<10} lam={lam}  r*={r:>3}  W(2.37)={b(w237,cl):>8}  W(3)={b(w3,cl):>8}")
+        print(f"  {nm:<10} lam={lam}  r_max={r:>3}  W(2.37)={b(w237,cl):>8}  W(3)={b(w3,cl):>8}")
 
 print("\n"+"="*92); print(" Modification I  (subcode k'=k-l, parity n-k)"); print("="*92)
 for (nm,m,n,k,l,cl) in [("ModI-136",85,85,43,2,136),("ModI-203",98,98,50,3,203),("ModI-276",121,121,61,4,276)]:
     kp=k-l
     for lam in (2,3):
         p=n-k; r=rstar(kp,p,n); neq=m*kp*p
-        print(f"  {nm:<9} lam={lam}  r*={r:>3}  W(2.37)={b(logW(neq,m,lam,r,2.37),cl):>8}  W(3)={b(logW(neq,m,lam,r,3.0),cl):>8}")
+        print(f"  {nm:<9} lam={lam}  r_max={r:>3}  W(2.37)={b(logW(neq,m,lam,r,2.37),cl):>8}  W(3)={b(logW(neq,m,lam,r,3.0),cl):>8}")
