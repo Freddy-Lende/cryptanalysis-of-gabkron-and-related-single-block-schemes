@@ -17,7 +17,7 @@ dependencies are required.
 
 ```
 .
-├── structure.py
+├── stab_structure.py
 ├── gabkron_attack_common.py
 │
 ├── verify_redthread_F32.py
@@ -25,6 +25,7 @@ dependencies are required.
 ├── residual_perblock.py
 ├── gabkron_perblock_example.py
 │
+├── gabkron_attack_with_secret.py
 ├── gabkron_attack.py
 │
 ├── gabkron_complexity_perblock.py
@@ -92,21 +93,28 @@ Complete worked example over `F_{2^6}`. The script prints:
 - the recovered clean block,
 - all rank verifications.
 
+### 'gabkron_attack_with_secret.py'
+Validates the structural witness predicted by the theory and the corresponding decryption once the witness has been constructed from the secret information. This script is intended as a correctness check of the theoretical results rather than a public-key implementation of the attack.
 ---
 
 ## Key-recovery attack
 
 ### `gabkron_attack.py`
-Complete implementation of the structural attack. The script:
+Complete **public** key-recovery attack, using only the public generator `G_pub`, the
+public parameters, a chosen reference `h0`, and the guessed distortion weight `t1`
+(the secret scrambler, distortion, and masking subspace are used only to build the
+instance and to seed a correct guess). For each candidate subspace `F` the script:
 
-1. generates a GabKron instance;
-2. computes the structural reduction;
-3. solves the Burle linear system in the over-determined regime;
-4. recovers an alternative secret key;
-5. decrypts the ciphertext.
+1. forms the public system `G_pub . D . (I (x) H0)^T = 0` over `F_q`;
+2. computes its kernel by Gaussian elimination;
+3. extracts a solution of image rank `k` (every kernel element already has entries in
+   `F`, i.e. support `<= lambda`);
+4. decrypts a real ciphertext `y = m G_pub + e`;
+5. reports GOOD guesses (`F = alpha V`) versus BAD guesses separately.
 
-For the experimental setup reported in the paper, it successfully recovers and
-decrypts **24 out of 24** randomly generated spread-distortion instances.
+It runs a worked single-block and a GabKron (`n1 = 2`) instance, then a batch that
+recovers and decrypts **24 / 24** random instances of each while rejecting **24 / 24**
+bad guesses.
 
 ---
 
