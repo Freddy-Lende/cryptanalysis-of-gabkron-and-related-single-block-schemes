@@ -25,7 +25,7 @@ dependencies are required.
 ├── residual_perblock.py
 ├── gabkron_perblock_example.py
 │
-├── gabkron_attack_with_secret.py
+├── gabkron_witness.py
 ├── gabkron_attack.py
 │
 ├── gabkron_complexity_perblock.py
