@@ -37,84 +37,13 @@ red = lambda it: reduce(operator.xor, it, 0)
 
 
 # --------------------------------------------------------------------------- #
-#  R_beta : matrix over F_q of multiplication by beta in the basis h0
-#           (h0 R_beta = beta * h0), used for the F_qm-action Z . beta = Z R_beta^T
+#  The F_qm-module machinery (R_beta, the action Z.beta = Z R_beta^T, membership,
+#  entry-support and the F_qm-basis extraction) now lives in the shared module
+#  gabkron_attack_common.py, so that gabkron_attack.py can use the very same code
+#  for its deterministic key extraction.  See the paper's Lemma "Frobenius
+#  F_qm-module structure" and Theorem "Deterministic extraction from a kernel basis".
 # --------------------------------------------------------------------------- #
-def R_beta(F, h0, beta):
-    m = F.m
-    A = [[(h0[j] >> b) & 1 for j in range(m)] for b in range(m)]      # bits of h0[j]
-
-    def coords(x):                                                    # solve A c = bits(x)
-        M = [A[b][:] + [(x >> b) & 1] for b in range(m)]
-        piv, r = [], 0
-        for c in range(m):
-            s = next((i for i in range(r, m) if M[i][c]), None)
-            if s is None:
-                continue
-            M[r], M[s] = M[s], M[r]
-            for i in range(m):
-                if i != r and M[i][c]:
-                    M[i] = [M[i][t] ^ M[r][t] for t in range(m + 1)]
-            piv.append(c); r += 1
-        out = [0] * m
-        for i, c in enumerate(piv):
-            out[c] = M[i][m]
-        return out
-
-    R = [[0] * m for _ in range(m)]
-    for c in range(m):
-        cc = coords(F.mul(beta, h0[c]))
-        for j in range(m):
-            R[j][c] = cc[j]
-    return R
-
-
-def act(F, Z, R):
-    """Z . R^T  (F_q-linear recombination of columns of Z)."""
-    m = len(R)
-    return [[red([F.mul(Z[i][a], R[c][a]) for a in range(m) if R[c][a]])
-             for c in range(m)] for i in range(len(Z))]
-
-
-def in_span(F, Z, basis_vecs, n, m):
-    """is vec(Z) in the F_2-span of basis_vecs (list of matrices, vectorised)?"""
-    def vec(M):
-        return [b for i in range(n) for c in range(m) for b in F.bits(M[i][c])]
-    M = [vec(B) for B in basis_vecs]
-    t = vec(Z)
-    L = len(t); r = 0; piv = []
-    for c in range(L):
-        s = next((i for i in range(r, len(M)) if M[i][c]), None)
-        if s is None:
-            continue
-        M[r], M[s] = M[s], M[r]
-        for i in range(len(M)):
-            if i != r and M[i][c]:
-                M[i] = [M[i][x] ^ M[r][x] for x in range(L)]
-        piv.append(c); r += 1
-    for i, c in enumerate(piv):
-        if t[c]:
-            t = [t[x] ^ M[i][x] for x in range(L)]
-    return not any(t)
-
-
-def supp_dim(F, Z, n, m):
-    return GA.gf2_rank_of(F, [Z[i][c] for i in range(n) for c in range(m)])
-
-
-def kbasis(F, Ls, h0, n, m, n1cap=None):
-    """extract an F_qm-basis of L_F = span_Fq(Ls) via the R_beta action."""
-    gens = [F.pw(2, j) for j in range(m)]
-    Rg = [R_beta(F, h0, g) for g in gens]
-    Kb, span = [], []
-    for Z in Ls:
-        if not span or not in_span(F, Z, span, n, m):
-            Kb.append(Z)
-            span += [act(F, Z, R) for R in Rg]
-            if n1cap and len(Kb) >= n1cap:
-                break
-    return Kb
-
+from gabkron_attack_common import R_beta, act, in_span, supp_dim, kbasis
 
 # --------------------------------------------------------------------------- #
 def run(m, n1, k1, n2, k2, lam, N, t1=None, layout="spread", seed0=1000, label=""):
