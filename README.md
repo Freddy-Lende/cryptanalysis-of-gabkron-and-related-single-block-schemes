@@ -24,7 +24,6 @@ dependencies are required.
 ├── sun_perblock.py
 ├── residual_perblock.py
 ├── gabkron_perblock_example.py
-├── gabkron_witness.py
 │
 ├── gabkron_attack.py
 │
@@ -32,6 +31,7 @@ dependencies are required.
 │
 ├── gabkron_complexity_perblock.py
 ├── apps_complexity.py
+├── proven_complexity.py
 │
 └── README.md
 ```
@@ -95,10 +95,6 @@ Complete worked example over `F_{2^6}`. The script prints:
 - the recovered clean block,
 - all rank verifications.
 
-### `gabkron_witness.py`
-
-Validates the structural witness predicted by the theory and the corresponding decryption once the witness has been constructed from the secret information. This script serves as a correctness check of the theoretical results rather than a public-key implementation of the attack.
-
 ---
 
 ## Key-recovery attack
@@ -108,18 +104,27 @@ Complete **public** key-recovery attack, using only the public generator `G_pub`
 public parameters, a chosen reference `h0` and the guessed distortion weight `t1`. It
 runs two experiments:
 
-- **(A) Resolution + extraction campaign.** For a candidate subspace `F` of dimension
-  `r_max = floor(k p / n)` it forms the public system, computes its kernel, samples
-  `F_q`-linear combinations and extracts a key of image rank `k` and support `<= lambda`,
-  then decrypts. The campaign uses a **uniformly random** masking space `V`, entries of
-  `P` **uniform in `V`**, and the scheme's error rank `t = floor((n2-k2-2 t1)/(2 lambda)) >= 1`.
-  It reports, over many instances and several regimes (`r_max - lambda in {0,1,2}`,
-  `lambda in {2,3}`, several `t1`, layouts spread/concentrated/random, single-block and
-  Kronecker), the recovery rate with a 95% confidence interval, the false-positive rate
-  on genuine random bad guesses, the kernel-dimension set, the support histogram of the
-  sampled kernel vectors, the empirical `P(rank = k)`, and the mean number of sampled
-  combinations to a valid key. The secret `V` is used only to seed the controlled
-  correct guess; the exponential outer guessing loop is not run here.
+- **(A) Accelerated regime `r = r_max`.** For a candidate subspace `F` of dimension
+  `r_max = floor(k p / n)` it forms the **per-block** system `G_pub Z H0^T = 0`, computes
+  the module `L_F`, extracts an `F_qm`-basis of it via the `R_beta` action and
+  **concatenates the whole basis** into `D_F`. This is the deterministic extraction of the
+  paper's Theorem *Deterministic extraction from a kernel basis*: no sampling, no subset
+  enumeration, and no assumption on `d = dim_{F_qm} L_F`. The only remaining check is the
+  entry-support `<= lambda`. The campaign uses a **uniformly random** masking space `V`,
+  entries of `P` **uniform in `V`**, and the scheme's error rank
+  `t = floor((n2-k2-2 t1)/(2 lambda)) >= 1`. Over eight configurations
+  (`r_max - lambda in {0,1,2}`, `lambda in {2,3}`, several `t1`, layouts
+  spread/concentrated/random, single-block and Kronecker) it reports the recovery rate
+  with a 95% confidence interval, the false-positive rate on genuine random bad guesses,
+  the `F_q`- and `F_qm`-dimensions of the solution space, the support of `D_F` and whether
+  its image rank equals `k`. The secret `V` is used only to seed the controlled correct
+  guess; the exponential outer guessing loop is not run here.
+
+- **(A') Proven regime `r = lambda`.** The same pipeline with a guess of dimension exactly
+  `lambda`. A good guess of that dimension containing `alpha V` must **equal** `alpha V`,
+  so every element of `L_F` is `alpha V`-valued by construction and the support test cannot
+  fail: this campaign validates the paper's Theorem *Heuristic-free recovery at
+  r = lambda* end to end, with **no heuristic involved**.
 
 - **(B) Complete attack.** The full public attack on a tiny instance, where `F` is
   guessed **at random without any secret** until resolution + extraction + decryption
@@ -135,14 +140,20 @@ per-configuration `N` in `__main__` for a quicker run.
 Reproduces the **F_{q^m}-module structure** of the per-block solution space
 `L_F = { Z : G_pub Z H0^T = 0 }` (paper: Lemma *Frobenius module structure*, the
 extraction Heuristic, and the structure Remark). Using the trusted kernel solver of
-`gabkron_attack.py`, it measures on good guesses at `r = r_max`:
+`gabkron_attack.py` (whose `R_beta`, `act`, `in_span`, `supp_dim` and `kbasis` now live
+in `gabkron_attack_common.py` and are shared by both scripts), it measures on good
+guesses at `r = r_max`:
 
 - `dim_{F_qm} L_F` (found equal to `n1^2`), and the consistency `m | dim_{F_q} L_F`;
 - **K-stability**: `Z in L_F  =>  Z R_beta^T in L_F`, where `R_beta` is multiplication
   by `beta` in the basis `h0` (so the action preserves the entry-support);
 - that **every** element of `L_F` is `alpha V`-valued (support `<= lambda`);
-- **deterministic extraction**: every `n1`-subset of an `F_qm`-basis of `L_F` yields an
-  image of rank exactly `k` — no random sampling.
+- **deterministic extraction**: concatenating an `F_qm`-basis of `L_F` yields an image
+  of rank exactly `k` — no random sampling, and no need to know `dim L_F`.
+
+Note that four of the five reported cases have `r_max = lambda`, hence `F = alpha V`
+exactly: there the `alpha V`-valuedness is *forced* rather than observed (paper:
+Theorem *Heuristic-free recovery at r = lambda*), so the measured `n1^2` is intrinsic.
 
 The default suite covers `n1 in {1,2}`, `lambda in {2,3}` and runs in a couple of
 minutes; the `n1 = 3` case (verified to give `dim_{F_qm} L_F = 9`) is included as a
@@ -199,7 +210,7 @@ If this software contributes to your research, please cite the accompanying pape
 ```bibtex
 @unpublished{Metouke2026,
   title  = {Structural Cryptanalysis of Loidreau-Masked Gabidulin--Kronecker and Related Single-Block Schemes},
-  author = {Freddy Lende Metouke,...},
+  author = {Freddy Lende Metouke, ...},
   year   = {2026},
   note   = {Preprint}
 }
@@ -210,3 +221,29 @@ If this software contributes to your research, please cite the accompanying pape
 ## License
 
 Released under the MIT License.
+
+### `proven_complexity.py`
+Work factors of the **proven regime `r = lambda`** (paper: Theorem *Heuristic-free
+recovery at r = lambda*, equation `eq:Wrig`, Table `tab:proven`). At `r = lambda` a good
+guess forces `F = alpha V`, so the support bound holds by construction and the attack
+uses **no heuristic at all**.
+
+The guessing cost is computed with the **exact** Gaussian binomial,
+
+```
+E[#trials] = |Stab(V)| * [m choose lambda]_q / (q^m - 1),   |Stab(V)| = q-1 generically,
+```
+
+rather than the leading-order estimate used in the accelerated regime. The script prints,
+for all four schemes and both `omega in {2.37, 3}`, the accelerated figure `W1_acc`
+alongside the proven `W1_pr`, `W2_pr`, and ends with a sanity check confirming that the
+proven regime costs exactly `lambda*(r_max - lambda)` extra bits (up to the `O(1)` gap
+between the exact count and its estimate).
+
+Since `W^pr` does not depend on `r_max`, it decreases monotonically in `t_1` through the
+polynomial factor alone: for the original GabKron sets the worst case over
+`t_1 in [1, t_2]` is at `t_1 = 1`, and that is what the table reports.
+
+```
+python3 proven_complexity.py
+```
