@@ -3,13 +3,10 @@ gabkron_attack_common.py  --  shared machinery for the two GabKron attack script
 
 Provides:
   build_instance(...)        one random spread-distortion GabKron instance + ciphertext
-  recover_perblock(I,h0)     per-block recovery (W_B): UNIFORM clearing to exactly
+  recover_perblock(I,h0)     per-block recovery: UNIFORM clearing to exactly
                              n2-t1 clean columns per block, single parity
                              p = n2 - t1 - k2, per-block full-column-rank T_{2,i};
                              matches Theorem "Alternative key recovery".
-  recover_uniform(I,h0)      uniform full-parity recovery (W_A): single reference
-                             H0 = Moore(h0, n2-k2) (p = n2-k2), solved over the PUBLIC
-                             kernel for a V-valued key of image rank k (t1-independent).
   decrypt(...)               full message recovery from a recovered key (no residual).
 
 Pure Python (python3, NOT Sage). Needs structure.py.
@@ -225,7 +222,7 @@ def build_instance(seed, m, n2, k2, lblocks):
                 m_true=m_true, y=y, lblocks=lblocks)
 
 def recover_perblock(I, h0):
-    """W_B recovery: UNIFORM clearing to exactly n2-t1 clean columns per block.
+    """Per-block recovery: UNIFORM clearing to exactly n2-t1 clean columns per block.
        Single parity p = n2-t1-k2 (same for every block); per-block T_{2,i}.
        Returns D, Hs (=[H0]*n1), Vset, p.  Matches Theorem (alternative key recovery)."""
     F = I['F']; Gpub = I['Gpub']; P = I['P']; n = I['n']; n1 = I['n1']
@@ -261,49 +258,6 @@ def recover_perblock(I, h0):
                                          for l in range(n2 - t1)])
     return D, Hs, Vset, p
 
-def recover_uniform(I, h0):
-    """W_A recovery: single H0 = Moore(h0, n2-k2) (p=n2-k2). Solve the PUBLIC
-       kernel for D in V with rk(G_pub D)=k. t1-independent. Returns D, H0, Vset."""
-    F = I['F']; Gpub = I['Gpub']; n = I['n']; n1 = I['n1']; m = F.m; k = I['k']
-    n2 = I['n2']; k2 = I['k2']; lam = I['lam']; Vb = I['Vb']
-    H0 = moore(F, h0, n2 - k2); ncols = n1 * m; nun = n * ncols * lam
-    Vset = [red([Vb[s] for s in range(lam) if (c >> s) & 1]) for c in range(2 ** lam)]
-    def Dfrom(xb):
-        idx = 0; D = [[0] * ncols for _ in range(n)]
-        for i in range(n):
-            for j in range(ncols):
-                vv = 0
-                for tt in range(lam):
-                    if xb[idx]: vv ^= Vb[tt]
-                    idx += 1
-                D[i][j] = vv
-        return D
-    def constr(D):
-        GD = matmul(F, Gpub, D); out = []
-        for r in range(k):
-            row = []
-            for blk in range(n1):
-                seg = GD[r][blk * m:(blk + 1) * m]
-                for hr in range(n2 - k2):
-                    row.append(red([F.mul(seg[j], H0[hr][j]) for j in range(m)]))
-            out.append(row)
-        return out
-    eqc = []
-    for u in range(nun):
-        xb = [0] * nun; xb[u] = 1
-        rmat = constr(Dfrom(xb)); eqc.append([b for rr in rmat for val in rr for b in F.bits(val)])
-    ker = gf2_kernel([[eqc[u][rr] for u in range(nun)] for rr in range(len(eqc[0]))])
-    D = None
-    for d in ker:
-        if rank(F, matmul(F, Gpub, Dfrom(d))) == k: D = Dfrom(d); break
-    if D is None and ker:
-        acc = ker[0][:]; bestr = rank(F, matmul(F, Gpub, Dfrom(acc)))
-        for d in ker[1:]:
-            cand = [xor(acc[i], d[i]) for i in range(nun)]; cr = rank(F, matmul(F, Gpub, Dfrom(cand)))
-            if cr > bestr: acc, bestr = cand, cr
-            if bestr == k: break
-        if bestr == k: D = Dfrom(acc)
-    return D, H0, Vset
 def _blk(F, Hs, m, n1):
     """blockdiag(Hs_1,...,Hs_n1): (sum rows) x (n1*m)."""
     rows = sum(len(H) for H in Hs); P = [[0] * (n1 * m) for _ in range(rows)]; off = 0
@@ -312,3 +266,107 @@ def _blk(F, Hs, m, n1):
             for a in range(m): P[off + r][i * m + a] = Hs[i][r][a]
         off += len(Hs[i])
     return P
+
+
+# =========================================================================== #
+#  F_qm-MODULE MACHINERY  (paper: Lemma "Frobenius F_qm-module structure of the
+#  solution space" and Theorem "Deterministic extraction from a kernel basis")
+#
+#  L_F = { Z in F^{n x m} : G_pub Z H0^T = 0 } is an F_qm-vector space under
+#  Z . beta = Z R_beta^T, where R_beta is multiplication by beta in the basis h0.
+#  The action preserves the entry-support, and concatenating a whole F_qm-basis
+#  of L_F yields a key of image rank k -- whatever dim_{F_qm} L_F happens to be.
+# =========================================================================== #
+
+def gf2_rank_of(F, elements):
+    """F_q-dimension of the span of a list of F_qm elements (q=2 bit layout)."""
+    rows = [[(e >> i) & 1 for i in range(F.m)] for e in elements]
+    r = 0
+    for col in range(F.m):
+        sel = next((i for i in range(r, len(rows)) if rows[i][col]), None)
+        if sel is None: continue
+        rows[r], rows[sel] = rows[sel], rows[r]
+        for i in range(len(rows)):
+            if i != r and rows[i][col]:
+                rows[i] = [rows[i][t] ^ rows[r][t] for t in range(F.m)]
+        r += 1
+    return r
+
+# --------------------------------------------------------------------------- #
+#  R_beta : matrix over F_q of multiplication by beta in the basis h0
+#           (h0 R_beta = beta * h0), used for the F_qm-action Z . beta = Z R_beta^T
+# --------------------------------------------------------------------------- #
+def R_beta(F, h0, beta):
+    m = F.m
+    A = [[(h0[j] >> b) & 1 for j in range(m)] for b in range(m)]      # bits of h0[j]
+
+    def coords(x):                                                    # solve A c = bits(x)
+        M = [A[b][:] + [(x >> b) & 1] for b in range(m)]
+        piv, r = [], 0
+        for c in range(m):
+            s = next((i for i in range(r, m) if M[i][c]), None)
+            if s is None:
+                continue
+            M[r], M[s] = M[s], M[r]
+            for i in range(m):
+                if i != r and M[i][c]:
+                    M[i] = [M[i][t] ^ M[r][t] for t in range(m + 1)]
+            piv.append(c); r += 1
+        out = [0] * m
+        for i, c in enumerate(piv):
+            out[c] = M[i][m]
+        return out
+
+    R = [[0] * m for _ in range(m)]
+    for c in range(m):
+        cc = coords(F.mul(beta, h0[c]))
+        for j in range(m):
+            R[j][c] = cc[j]
+    return R
+
+
+def act(F, Z, R):
+    """Z . R^T  (F_q-linear recombination of columns of Z)."""
+    m = len(R)
+    return [[red([F.mul(Z[i][a], R[c][a]) for a in range(m) if R[c][a]])
+             for c in range(m)] for i in range(len(Z))]
+
+
+def in_span(F, Z, basis_vecs, n, m):
+    """is vec(Z) in the F_2-span of basis_vecs (list of matrices, vectorised)?"""
+    def vec(M):
+        return [b for i in range(n) for c in range(m) for b in F.bits(M[i][c])]
+    M = [vec(B) for B in basis_vecs]
+    t = vec(Z)
+    L = len(t); r = 0; piv = []
+    for c in range(L):
+        s = next((i for i in range(r, len(M)) if M[i][c]), None)
+        if s is None:
+            continue
+        M[r], M[s] = M[s], M[r]
+        for i in range(len(M)):
+            if i != r and M[i][c]:
+                M[i] = [M[i][x] ^ M[r][x] for x in range(L)]
+        piv.append(c); r += 1
+    for i, c in enumerate(piv):
+        if t[c]:
+            t = [t[x] ^ M[i][x] for x in range(L)]
+    return not any(t)
+
+
+def supp_dim(F, Z, n, m):
+    return gf2_rank_of(F, [Z[i][c] for i in range(n) for c in range(m)])
+
+
+def kbasis(F, Ls, h0, n, m, n1cap=None):
+    """extract an F_qm-basis of L_F = span_Fq(Ls) via the R_beta action."""
+    gens = [F.pw(2, j) for j in range(m)]
+    Rg = [R_beta(F, h0, g) for g in gens]
+    Kb, span = [], []
+    for Z in Ls:
+        if not span or not in_span(F, Z, span, n, m):
+            Kb.append(Z)
+            span += [act(F, Z, R) for R in Rg]
+            if n1cap and len(Kb) >= n1cap:
+                break
+    return Kb
