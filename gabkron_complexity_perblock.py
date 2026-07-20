@@ -1,4 +1,6 @@
 """
+Corrected work factors in the OVER-DETERMINED Burle regime (reviewer's central point).
+
 For a guess F in Gr_r(q,m), the recovery system has
     U = m*n*r    unknowns over F_q   (D in M_{n,m}(F), n the code length)
     E = m*k*p    equations over F_q  (p = parity row count)
