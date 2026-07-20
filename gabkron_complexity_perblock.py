@@ -1,6 +1,4 @@
 """
-Corrected work factors in the OVER-DETERMINED Burle regime (reviewer's central point).
-
 For a guess F in Gr_r(q,m), the recovery system has
     U = m*n*r    unknowns over F_q   (D in M_{n,m}(F), n the code length)
     E = m*k*p    equations over F_q  (p = parity row count)
@@ -90,11 +88,3 @@ for (nm,m,n,k,l,cl) in [("ModI-136",85,85,43,2,136),("ModI-203",98,98,50,3,203),
         p=n-k; r=rstar(kp,p,n); neq=m*kp*p
         print(f"  {nm:<9} lam={lam}  r*={r:>3}  W(2.37)={b(logW(neq,m,lam,r,2.37),cl):>8}  W(3)={b(logW(neq,m,lam,r,3.0),cl):>8}")
 
-print("\n CROSS-CHECK vs reviewer's corrected values:")
-_,_,_,_,g128hi = scan_original("GabKron-128",2,2,24,12,2,48,3,128)
-print(f"   GabKron-128 max W(3)={g128hi[3]:.1f} at t1={g128hi[0]} (rev 128.9)")
-_n,_k=2*128,2*40; _p=128-8-40; _r=rstar(_n and _k,_p,_n)
-print(f"   new-GabKron-256 W(2.37)={logW(128*_k*2*_p,128,3,rstar(_k,_p,_n),2.37):.1f} (rev 229.9),"
-      f" W(3)={logW(128*_k*2*_p,128,3,rstar(_k,_p,_n),3.0):.1f} (rev 242.9)")
-r=singlerow("LGRH-128",98,89,10,11,2,2,128); print(f"   LGRH-128 W(2.37)={r[4]:.1f} (rev 122.0)")
-r=singlerow("LGRH-192",165,122,14,14,2,2,192); print(f"   LGRH-192 W(2.37)={r[4]:.1f} (rev 187.0)")
