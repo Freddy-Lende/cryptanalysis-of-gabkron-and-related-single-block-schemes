@@ -182,19 +182,22 @@ def analyze(F, n2, k2, label):
           f"{'FIELD GF(2^%d)'%d if (closed and comm and allinv) else 'NOT a field'}")
     return d, (closed and comm and allinv)
 
-print("=== Lau24 regime: m = n2 (full-length inner code) ===")
-analyze(GF(2), 2, 1, "Lau")
-analyze(GF(4), 4, 2, "Lau")
-analyze(GF(4), 4, 1, "Lau")
-analyze(GF(4), 4, 3, "Lau")
+if __name__ == "__main__":
+    # Exploratory stabiliser-algebra demo; runs only when this file is executed
+    # directly, so that importing structure.py stays silent.
+    print("=== Lau24 regime: m = n2 (full-length inner code) ===")
+    analyze(GF(2), 2, 1, "Lau")
+    analyze(GF(4), 4, 2, "Lau")
+    analyze(GF(4), 4, 1, "Lau")
+    analyze(GF(4), 4, 3, "Lau")
 
-print("\n=== Sun24 regime: m = 2*n2 (half-length inner code) ===")
-analyze(GF(4), 2, 1, "Sun")          # m=4, n2=2
-analyze(GF(6), 3, 1, "Sun")          # m=6, n2=3
-analyze(GF(6), 3, 2, "Sun")          # m=6, n2=3, k2=2
+    print("\n=== Sun24 regime: m = 2*n2 (half-length inner code) ===")
+    analyze(GF(4), 2, 1, "Sun")          # m=4, n2=2
+    analyze(GF(6), 3, 1, "Sun")          # m=6, n2=3
+    analyze(GF(6), 3, 2, "Sun")          # m=6, n2=3, k2=2
 
-print("\n=== intermediate n2 < m (other ratios), to see the pattern ===")
-analyze(GF(6), 2, 1, "n2=2<m=6")
-analyze(GF(8), 3, 1, "n2=3<m=8")
-analyze(GF(8), 4, 2, "n2=4<m=8")
-analyze(GF(8), 5, 2, "n2=5<m=8")
+    print("\n=== intermediate n2 < m (other ratios), to see the pattern ===")
+    analyze(GF(6), 2, 1, "n2=2<m=6")
+    analyze(GF(8), 3, 1, "n2=3<m=8")
+    analyze(GF(8), 4, 2, "n2=4<m=8")
+    analyze(GF(8), 5, 2, "n2=5<m=8")
