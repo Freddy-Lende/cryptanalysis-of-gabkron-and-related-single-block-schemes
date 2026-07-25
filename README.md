@@ -24,8 +24,8 @@ dependencies are required.
 ├── sun_perblock.py
 ├── residual_perblock.py
 ├── gabkron_perblock_example.py
-├── gabkron_witness.py
 │
+├── gabkron_witness.py
 ├── gabkron_attack.py
 │
 ├── module_structure.py
@@ -33,6 +33,11 @@ dependencies are required.
 ├── gabkron_complexity_perblock.py
 ├── apps_complexity.py
 ├── proven_complexity.py
+│
+├── briaud_perblock.py
+├── briaud_singleblock_test.py
+├── briaud_adapted_complexity.py
+├── sparsity_check.py
 │
 └── README.md
 ```
@@ -188,6 +193,38 @@ r_star = floor(k*p / n)
 ```
 
 and print the result for both `omega = 2.37` and `omega = 3`.
+
+---
+
+## Briaud–Loidreau adaptation (third complexity column)
+
+These scripts support the per-block adaptation of the dual Briaud–Loidreau attack and
+the `W3` column of the complexity tables.
+
+### `briaud_perblock.py`
+Adapts the Briaud–Loidreau constrained system `V·Hhat_pub = Hhat_norm·W` per block and
+verifies their Proposition 4 numerically. On a genuine masked Gabidulin block
+(`n <= m`), a good guess of a `gamma`-dimensional space `U` containing a multiple
+`x·V` yields a solution space exactly `m` larger over `F_q` — one extra `F_qm`-dimension,
+the recovered `(x·V, x·W)` pair — than a screened wrong guess. The clean separation
+(`diff = m`) requires a strict over-determination margin `r·n > gamma·n + r^2`; the
+borderline equality case need not separate. Running with `--summary` prints the findings
+(same guess dimension as Burle, heavier bilateral system, no advantage).
+
+### `briaud_singleblock_test.py`
+Thin wrapper over `briaud_perblock.run` that checks the same dimension-gap distinguisher
+on standalone masked Gabidulin blocks, isolated from the Kronecker plumbing.
+
+### `briaud_adapted_complexity.py`
+Computes the `W3` work factor (Briaud/Nouetowa–Loidreau adaptation at `omega = 2`,
+sparse Wiedemann): the `gamma = 0` case for cleaned GabKron blocks, the exact
+Nouetowa–Loidreau formula for the single-block schemes. Cross-validates by reproducing
+their published Modification-II figures (96, 102, 120) to within a bit.
+
+### `sparsity_check.py`
+Measures the density of our unilateral system (`~0.5`, dense) versus the dual Briaud
+system (`~0.05`–`0.08`, sparse), justifying `omega in {2.37, 3}` for `W1`/`W2` but
+`omega = 2` (Wiedemann) for `W3`.
 
 ---
 
