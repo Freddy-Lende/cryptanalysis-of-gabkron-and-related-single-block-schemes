@@ -184,6 +184,11 @@ def build_instance(seed, m, n2, k2, lblocks):
     rng = random.Random(seed)
     ss.IRRED.setdefault(m, {4: 0b10011, 6: 0b1000011, 8: 0b100011011, 10: 0b10000001001}[m]); F = GF(m)
     n1 = k1 = 2; n, k = n1 * n2, k1 * k2; lam = 2; Vb = [1, 2]
+    # build_instance produces a SPREAD instance (every Kronecker block carries distortion);
+    # a concentrated layout such as (2,0) is incompatible with the spread condition below and
+    # would loop forever, so reject it explicitly.
+    assert all(l > 0 for l in lblocks), \
+        f"build_instance requires a spread layout (every block non-empty); got {lblocks}"
     t1 = sum(lblocks); t = max((n2 - k2 - 2 * t1) // (2 * lam), 1)
     v2 = [F.pw(2, j) for j in range(n2)]; G2 = moore(F, v2, k2); H2 = right_kernel(F, G2)
     v1 = [F.pw(2, 1), F.pw(2, 4)]; G1 = moore(F, v1, k1); GKP = kron(F, G1, G2); e0 = F.pw(2, 2)
