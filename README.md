@@ -24,6 +24,7 @@ dependencies are required.
 ├── sun_perblock.py
 ├── residual_perblock.py
 ├── gabkron_perblock_example.py
+├── gabkron_witness.py
 │
 ├── gabkron_attack.py
 │
@@ -210,11 +211,16 @@ If this software contributes to your research, please cite the accompanying pape
 ```bibtex
 @unpublished{Metouke2026,
   title  = {Structural Cryptanalysis of Loidreau-Masked Gabidulin--Kronecker and Related Single-Block Schemes},
-  author = {Freddy Lende Metouke, ...},
+  author = {Freddy Lende Metouke and <co-author(s) to be completed>},
   year   = {2026},
   note   = {Preprint}
 }
 ```
+
+> **Note.** Complete the `author` field with all co-authors, and, before submission,
+> archive the exact reviewed version: create a Git tag and GitHub release for the
+> submitted commit, and deposit that release on Zenodo to obtain a DOI. Add the DOI here
+> and in the paper's reproducibility section once assigned.
 
 ---
 
