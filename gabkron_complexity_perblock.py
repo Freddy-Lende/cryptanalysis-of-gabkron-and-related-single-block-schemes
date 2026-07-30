@@ -1,6 +1,4 @@
 """
-Corrected work factors in the OVER-DETERMINED Burle regime.
-
 For a guess F in Gr_r(q,m), the recovery system has
     U = m*n*r    unknowns over F_q   (D in M_{n,m}(F), n the code length)
     E = m*k*p    equations over F_q  (p = parity row count)
@@ -35,7 +33,7 @@ def singlerow(name, m, n, k, gamma, q, lam, cl, kp=None):
 def b(w, cl): return f"*{w:.1f}*" if w < cl else f"{w:.1f}"
 
 def scan_original(name, n1,k1,n2,k2,q,m,lam,cl):
-    """Scan all t1 in [1,t2]; return (name,cl,t2, (t1,r,W2.37,W3) at min and at max of W)."""
+    """Scan all t1 in [1,t2]; return (name,cl,t2, (t1,r,W@2.37,W@3) at min and at max of W)."""
     n,k=n1*n2,k1*k2; t2=(n2-k2)//2; rows=[]
     for t1 in range(1,t2+1):
         p=n2-t1-k2; r=rstar(k,p,n); neq=m*k*n1*p
