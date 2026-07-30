@@ -79,6 +79,24 @@ def rand_subspace(F, dim, rng):
             B.append(x)
     return B
 
+def fq_span(F, basis):
+    """all F_q-combinations of an F_q-basis (q=2), as a frozenset of field elements."""
+    out = {0}
+    for b in basis:
+        out |= {x ^ b for x in out}
+    return frozenset(out)
+
+def stabiliser_size(F, Vb):
+    """|Stab(V)| = #{ alpha in F_{q^m}^* : alpha V = V }, V = <Vb>_{F_q}.
+    Always contains F_q^* (size q-1 = 1 for q=2); a larger value means V is a subfield-
+    like space with extra multiplicative symmetry. Returns the integer |Stab(V)|."""
+    Vset = fq_span(F, Vb)
+    cnt = 0
+    for a in range(1, F.QM):
+        if all(F.mul(a, v) in Vset for v in Vb):
+            cnt += 1
+    return cnt
+
 def rand_elt_of(F, Vb, rng):
     """uniform element of span(Vb): sum_l u_l v_l with u_l in F_q (=F_2 here)."""
     e = 0
@@ -156,6 +174,11 @@ def build_instance(m, n1, k1, n2, k2, lam, seed, t1=None, layout="spread"):
     n, k = n1 * n2, k1 * k2
     if t1 is None: t1 = n1                                 # default: one direction per block
     Vb = rand_subspace(F, lam, rng)                        # (3.2) uniformly random V
+    # reject the rare V with a non-trivial stabiliser, so |Stab(V)| = q-1 holds for every
+    # accepted key and the exact r=lambda orbit count is uniform (review point on
+    # "unconditional"); cf. stabiliser_check.py
+    while stabiliser_size(F, Vb) != 1:
+        Vb = rand_subspace(F, lam, rng)
     g2 = [F.pw(2, j) for j in range(n2)]; G2 = moore(F, g2, k2)
     G1 = [[1]] if n1 == 1 else moore(F, [F.pw(2, 1 + 3 * i) for i in range(n1)], k1)
     GKP = kron(F, G1, G2)
@@ -402,10 +425,18 @@ def complete_attack(m, n1, k1, n2, k2, lam, N, max_trials=4000, base_seed=5000):
     ok = [t for t in trials_list if t is not None]
     print(f"  solved {len(ok)}/{N} instances within {max_trials} guesses")
     if ok:
-        print(f"  guesses to success: mean {sum(ok)/len(ok):.1f}, min {min(ok)}, max {max(ok)}"
-              f"  (leading-order {predicted}; exact orbit {exact_orbit:.1f}; mean is below the")
-        print(f"   orbit count because the extractor accepts any functional key, above the")
-        print(f"   leading-order union-bound estimate)")
+        import statistics as _st
+        mean = sum(ok) / len(ok)
+        med = _st.median(ok)
+        sd = _st.pstdev(ok) if len(ok) > 1 else 0.0
+        # 95% CI on the mean (normal approx); half-width 1.96 sigma/sqrt(n)
+        hw = 1.96 * sd / (len(ok) ** 0.5) if len(ok) > 1 else 0.0
+        print(f"  guesses to success: mean {mean:.1f} (95% CI +/-{hw:.1f}), median {med:.1f},"
+              f" sd {sd:.1f}, min {min(ok)}, max {max(ok)}")
+        print(f"    leading-order union-bound {predicted}; exact orbit {exact_orbit:.1f}."
+              f" The empirical mean sits below the orbit count (the extractor accepts any")
+        print(f"    functional key) and above the union-bound estimate (an optimistic lower"
+              f" bound on the number of guesses).")
 
 # --------------------------------------------------------------------------- #
 if __name__ == "__main__":
@@ -434,7 +465,8 @@ if __name__ == "__main__":
     print("\n" + "#" * 96)
     print("#  (B) COMPLETE attack: the full outer guessing loop, using NO secret information")
     print("#" * 96 + "\n")
-    complete_attack(10, 1, 1, 10, 4, 2, N=25)
+    complete_attack(10, 1, 1, 10, 4, 2, N=200)
+    complete_attack(12, 1, 1, 12, 5, 2, N=100)
     print("\n" + "#" * 96)
     print("# Summary")
     print("# - Random V and uniform P: the concatenated F_qm-basis D_F has image rank")
