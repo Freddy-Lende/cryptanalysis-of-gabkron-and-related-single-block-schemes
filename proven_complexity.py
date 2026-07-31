@@ -13,9 +13,14 @@ with N_eq = m*k*n_1*p the number of F_q-equations of the recovery system, and
 
 Contrast with the accelerated regime r = r_max used in the other tables, whose
 guessing exponent is ((lambda-1)*m - lambda*r_max)*log2 q.  The proven regime
-costs exactly lambda*(r_max - lambda)*log2 q extra bits, and no longer depends
-on r_max: W^pr is therefore monotone decreasing in t_1 through the polynomial
-factor alone, so the worst case over t_1 in [1, t_2] sits at t_1 = 1.
+costs exactly lambda*(r_max - lambda)*log2 q extra bits.  Both regimes depend on the
+per-block width rho (through p = n2 - rho - k2), NOT on the global weight t1; since
+W is not monotone in rho, the worst case is the maximum over rho in [1, t2].
+
+The exact guess count carries a factor |Stab(V)|, generically q-1 (= 1 for q=2). The
+worst admissible value is q^gcd(lambda,m) - 1 (see max_stabiliser); this script reports
+both the generic figure and the worst-case one, and both keep the nine proven verdicts
+below their claimed levels.
 
 Pure standard library.  Run:  python3 proven_complexity.py
 """
@@ -51,6 +56,20 @@ def log2_trials_proven(m, lam, q=Q, stab=None):
     if stab is None:
         stab = q - 1               # generic stabiliser F_q^*
     return log2(stab) + log2_gaussian_binomial(m, lam, q) - log2(q ** m - 1)
+
+
+def max_stabiliser(m, lam, q=Q):
+    """Largest possible |Stab(V)| for a lambda-dim F_q-subspace V of F_qm.
+
+    Stab(V) cup {0} is the largest subfield K = F_{q^d} with K*V = V; then V is a
+    K-space, so d | lambda, and K subset F_qm forces d | m. Hence
+        |Stab(V)| in { q^d - 1 : d | gcd(lambda, m) },
+    and the worst case is d = gcd(lambda, m).
+    """
+    from math import gcd
+    d = gcd(lam, m)
+    return q ** d - 1
+
 
 
 def log2_trials_accelerated(m, lam, r_max, q=Q):
@@ -104,33 +123,35 @@ def verdict(w, claimed):
 
 
 def report_gabkron():
-    print("=" * 84)
+    print("=" * 96)
     print("GabKron / new-GabKron -- proven regime r = lambda")
-    print("  (original sets: worst case over t_1 in [1, t_2], attained at t_1 = 1)")
-    print("=" * 84)
-    header = f"{'set':17} {'claim':>5} {'t1':>3} {'r_max':>5} {'W1_acc':>7} " \
-             f"{'W1_pr':>7} {'W2_pr':>7}  verdict (W1_pr)"
+    print("  original sets: worst case over the per-block width rho in [1, t_2]")
+    print("  W1_pr(gen): generic stabiliser |Stab|=q-1 ;  W1_pr(wc): worst |Stab|=q^gcd(lam,m)-1")
+    print("=" * 96)
+    header = f"{'set':17} {'claim':>5} {'rho':>3} {'r_max':>5} {'W1_acc':>7} " \
+             f"{'W1_pr(gen)':>10} {'W1_pr(wc)':>9} {'|St|max':>7}  verdict"
     print(header)
-    for (name, n1, k1, n2, k2, m, lam, claimed, t_fixed) in GABKRON:
+    for (name, n1, k1, n2, k2, m, lam, claimed, rho_fixed) in GABKRON:
         n, k = n1 * n2, k1 * k2
         t2 = (n2 - k2) // 2
-        candidates = [t_fixed] if t_fixed else list(range(1, t2 + 1))
+        candidates = [rho_fixed] if rho_fixed else list(range(1, t2 + 1))
+        smax = max_stabiliser(m, lam)
         worst = None
-        for t1 in candidates:
-            p = n2 - t1 - k2
+        for rho in candidates:
+            p = n2 - rho - k2
             if p <= 0:
                 continue
             n_eq = m * k * n1 * p
             r_max = (k * p) // n
             w1_pr = work_factor(n_eq, log2_trials_proven(m, lam), 2.37)
             if worst is None or w1_pr > worst[0]:
-                w2_pr = work_factor(n_eq, log2_trials_proven(m, lam), 3.0)
+                w1_wc = work_factor(n_eq, log2_trials_proven(m, lam, stab=smax), 2.37)
                 w1_acc = work_factor(
                     n_eq, log2_trials_accelerated(m, lam, r_max), 2.37)
-                worst = (w1_pr, w2_pr, w1_acc, t1, r_max)
-        w1_pr, w2_pr, w1_acc, t1, r_max = worst
-        print(f"{name:17} {claimed:>5} {t1:>3} {r_max:>5} {w1_acc:>7.1f} "
-              f"{w1_pr:>7.1f} {w2_pr:>7.1f}  {verdict(w1_pr, claimed)}")
+                worst = (w1_pr, w1_wc, w1_acc, rho, r_max)
+        w1_pr, w1_wc, w1_acc, rho, r_max = worst
+        print(f"{name:17} {claimed:>5} {rho:>3} {r_max:>5} {w1_acc:>7.1f} "
+              f"{w1_pr:>10.1f} {w1_wc:>9.1f} {smax:>7}  {verdict(w1_wc, claimed)}")
 
 
 def report_single(rows, kind, title):
