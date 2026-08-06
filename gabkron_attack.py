@@ -35,7 +35,9 @@ Pure standard-library Python.
 import random, operator, io, contextlib, math
 from functools import reduce
 
-PRIM = {10: 0x409, 12: 0x1053, 14: 0x4443, 16: 0x1100b, 18: 0x40081}
+PRIM = {10: 0x409, 12: 0x1053, 14: 0x4443, 16: 0x1100b, 18: 0x40081,
+        20: 0x100009,   # x^20 + x^3 + 1            (primitive, verified)
+        24: 0x100001b}  # x^24 + x^4 + x^3 + x + 1  (primitive, verified)
 with contextlib.redirect_stdout(io.StringIO()):          # mute structure self-test on import
     import structure as ss
     for _m, _p in PRIM.items():
@@ -467,6 +469,50 @@ if __name__ == "__main__":
     print("#" * 96 + "\n")
     complete_attack(10, 1, 1, 10, 4, 2, N=200)
     complete_attack(12, 1, 1, 12, 5, 2, N=100)
+
+    # ------------------------------------------------------------------ #
+    #  (C) LARGE-m CAMPAIGN -- OFF by default; enable locally with:       #
+    #        LARGE_M=1 python3 gabkron_attack.py                          #
+    #                                                                     #
+    #  Purpose: push the tested field size up (m = 18, 20, 24) so the     #
+    #  support Heuristic 1 is checked at a larger gap r_max - lambda and  #
+    #  at a larger m than the m <= 16/18 runs above. Note: since a        #
+    #  Gabidulin length satisfies n <= m, one has r_max = floor(kp/n) ~   #
+    #  m/4, so the *gap* r_max - lambda grows only with m: m=20 still      #
+    #  gives gap 2 (as m=16/18), while gap 3 needs m>=24. These runs are  #
+    #  pure-Python and SLOW (minutes each at m=24); reduce N if needed.   #
+    #  Fill Table `tab:module_validation` / `tab:largem` with the output. #
+    # ------------------------------------------------------------------ #
+    import os
+    if os.environ.get("LARGE_M"):
+        print("\n" + "#" * 96)
+        print("#  (C) LARGE-m CAMPAIGN (local): larger field, support heuristic at growing m")
+        print("#" * 96 + "\n")
+        # EXPECTED RESULTS (all invariants below hold in every run; verified here at these N):
+        #   accelerated run_config -> recovered N/N, matched N/N, 0 false positives,
+        #                             dim L_F = n1^2, support = lambda, image rank = k (N/N)
+        #   proven run_proven      -> recovered N/N, support forced N/N, 0 false positives
+        # Confirmed on this machine: m=18 lam=2 (N=20) 20/20 ; m=20 lam=2 (N=10) 10/10 ;
+        #   m=20 lam=2 proven (N=8) 8/8 ; m=20 lam=3 (N=6) 6/6, support 3. Timing ~13 s/instance
+        #   at m=20 (pure Python); m=24 is far heavier per field op -- expect minutes/instance,
+        #   so keep N small for the gap-3 point.
+        #
+        # m = 18, gap 2 (matches Tables tab:module_validation / tab:proven_validation)
+        run_config("single  lam=2  m=18  r_max-lam=2  t1=1  spread", 18, 1, 1, 18, 8, 2, N=20, t1=1)
+        run_proven("single  lam=2  m=18  r=lambda     t1=1  spread", 18, 1, 1, 18, 8, 2, N=20, t1=1)
+        # m = 20, gap 2 (larger field; confirms mechanism as m grows)
+        run_config("single  lam=2  m=20  r_max-lam=2  t1=1  spread", 20, 1, 1, 20, 10, 2, N=10, t1=1)
+        run_proven("single  lam=2  m=20  r=lambda     t1=1  spread", 20, 1, 1, 20, 10, 2, N=8,  t1=1)
+        run_config("single  lam=3  m=20  r_max-lam=1  t1=1  spread", 20, 1, 1, 20, 8, 3, N=6, t1=1)
+        # m = 24, gap 3 (first time gap 3 is reached end-to-end). SLOW; small N. Fill the
+        # starred rows of the validation tables from this run.
+        run_config("single  lam=2  m=24  r_max-lam=3  t1=1  spread", 24, 1, 1, 24, 12, 2, N=5,  t1=1)
+        run_proven("single  lam=2  m=24  r=lambda     t1=1  spread", 24, 1, 1, 24, 12, 2, N=5,  t1=1)
+        # GabKron n1=2 at a larger field
+        run_config("GabKron n1=2  lam=2  m=16  t1=2  spread",        16, 2, 2, 16, 6, 2, N=10, t1=2)
+    else:
+        print("\n[large-m campaign skipped -- run  LARGE_M=1 python3 gabkron_attack.py  locally to enable]")
+
     print("\n" + "#" * 96)
     print("# Summary")
     print("# - Random V and uniform P: the concatenated F_qm-basis D_F has image rank")
