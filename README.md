@@ -33,10 +33,16 @@ dependencies are required.
 ├── gabkron_complexity_perblock.py
 ├── apps_complexity.py
 ├── proven_complexity.py
+├── global_complexity.py
 │
 ├── stabiliser_check.py
 ├── success_probability.py
 ├── heuristic1_campaign.py
+├── consistency_checks.py
+│
+├── universal_validation.py
+├── lambdap_support.py
+├── residual_lambdap.py
 │
 └── README.md
 ```
@@ -182,7 +188,7 @@ and compares them with the complexities previously reported in the literature.
 Both scripts evaluate the per-block work factor
 
 ```
-log2 W = omega * log2(m*k*n1*p) + ((lambda-1)*m - lambda*r_star) * log2(q)
+log2 W = omega * log2(m*k*p) + ((lambda-1)*m - lambda*r_star) * log2(q)
 ```
 
 with the over-determined guess dimension
@@ -191,7 +197,15 @@ with the over-determined guess dimension
 r_star = floor(k*p / n)
 ```
 
-and print the result for both `omega = 2.37` and `omega = 3`.
+and print the result for the three exponents `omega in {2.807, 3, 2.37}`: the operational
+Strassen exponent `2.807 = log2 7`, the conservative cubic `3`, and the asymptotic bound
+`2.37` (Alman et al. 2025, reported for reference only). The guessing term uses the exact
+Gaussian `1/S1` (see `success_probability.py`), not its leading order.
+
+> **Single-copy system.** The effective attack in `gabkron_attack.py` solves a *single*
+> system `G_pub Z H0^T = 0` (`m*k*p` equations), not `n1` copies, so the polynomial factor
+> is `omega*log2(n1)` bits smaller than an `m*k*n1*p` accounting would give (see
+> `consistency_checks.py`). The tables use `m*k*p` accordingly.
 
 ---
 
@@ -209,17 +223,51 @@ wording of the proven regime.
 
 ### `success_probability.py`
 Turns the accelerated-regime estimate into a rigorous two-sided bound. Establishes
-`S1 - S2 <= P <= S1` for the success probability `P` by inclusion-exclusion, shows the
-second-order term is exponentially small (or exactly zero when `r <= 2*lambda-2`, where the
-events are disjoint), and empirically confirms that the first moment `S1` matches the
-measured success probability at small sizes.
+`S1 - S2 <= P <= S1` for the success probability `P` by inclusion-exclusion. The second
+moment is bounded in two parts, by the dimension `s = dim(W_i + W_j) = 2*lambda - c`:
+the **intersecting** pairs (`c` in `[1, lambda-1]`, `m`-independent count
+`((q^lambda-1)/(q-1))^2`) and the **disjoint** pairs (`c = 0`, `s = 2*lambda`, up to `~q^m`
+of them, contributing only when `r >= 2*lambda`). Both are `q^{-Omega(m)}`, so
+`P = S1 (1 - o(1))`. At `r = lambda` the events are **exactly** mutually exclusive
+(`S2 = 0`), so `P = S1` exactly. The script prints `1/S1` and both components of the
+`S2/S1` bound for the paper's sets, and empirically confirms `S1` matches the measured
+success probability at small sizes.
 
 ### `heuristic1_campaign.py`
 Tests Heuristic 1 directly, conditioned on a good guess `F = alphaV` extended to dimension
 `r_max`, so the two properties are checked separately: (H1a) the support of the recovered
 module is `alphaV`-valued (the genuine heuristic), and (H1b) the image rank equals `k`
 (Theorem 2). Reports 95% confidence intervals over several `lambda`, `n1` and layouts. Large
-gaps `r_max - lambda` need `m > ~90` and are covered analytically by `success_probability.py`.
+gaps `r_max - lambda` need `m > ~90` and are **not** reached here; the accelerated regime at
+such gaps therefore remains a **heuristic extrapolation** — `success_probability.py` bounds
+only the guessing probability, not the support containment itself.
+
+### `global_complexity.py`
+Prices the unknown per-block width `rho`: compares the current verdict `max_rho W(rho)`, the
+honest enumeration cost `sum_rho W(rho)`, and the **global, search-free** value `W(t2)` (a
+single universal clearing to `n2 - t2` clean columns, `t2` public), which satisfies
+`W(t2) <= max_rho W <= sum_rho W`. Reports all three at the three exponents.
+
+### `universal_validation.py`
+Confirms empirically that the single universal clearing at width `t2` decrypts instances whose
+*actual* `rho` is smaller (over-clearing is sound), so no `rho` enumeration is needed.
+
+### `consistency_checks.py`
+Bundles three checks: (6a) the **single-copy** work factor (`m*k*p`, not `m*k*n1*p`), showing
+the `omega*log2(n1)`-bit reduction; (5) Heuristic 1's actual claim `Supp_q(L_F) subseteq alphaV`
+(containment, not just `dim <= lambda`); and Theorem 1's full-rank extraction for **every**
+`r in [lambda, r_max]`.
+
+### `lambdap_support.py`
+New-GabKron (Lau et al.) with the local `lambda' < lambda` scrambler structure. Shows the
+globally-recovered key does **not** preserve the local `lambda'` support (its per-block error
+rank reaches `lambda*t`), and that no dim-`lambda'` guess yields a full-rank key — so a
+published-weight ciphertext is not decrypted by the structural recovery alone.
+
+### `residual_lambdap.py`
+Option 2 for new-GabKron: prices the residual decoding of the excess
+`delta = lambda*t - floor(p/2)`, with and without the residual cost, at the three exponents.
+For new-GabKron-256 the published-weight cost is `<= 252 < 256` (accelerated).
 
 ## Reproducibility
 
@@ -239,18 +287,17 @@ this repository:
 If this software contributes to your research, please cite the accompanying paper:
 
 ```bibtex
-@unpublished{Metouke2026,
+@unpublished{MetoukeKalachiNdjeya2026,
   title  = {Structural Cryptanalysis of Loidreau-Masked Gabidulin--Kronecker and Related Single-Block Schemes},
-  author = {Freddy Lende Metouke and <co-author(s) to be completed>},
+  author = {Freddy Lend\'e Metouk\'e and Herv\'e Tal\'e Kalachi and S\'elestin Ndjeya},
   year   = {2026},
   note   = {Preprint}
 }
 ```
 
-> **Note.** Complete the `author` field with all co-authors, and, before submission,
-> archive the exact reviewed version: create a Git tag and GitHub release for the
-> submitted commit, and deposit that release on Zenodo to obtain a DOI. Add the DOI here
-> and in the paper's reproducibility section once assigned.
+> **Note.** Before submission, archive the exact reviewed version: create a Git tag and
+> GitHub release for the submitted commit, and deposit that release on Zenodo to obtain a
+> DOI. Add the DOI here and in the paper's reproducibility section once assigned.
 
 ---
 
