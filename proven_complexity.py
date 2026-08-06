@@ -128,8 +128,9 @@ def report_gabkron():
     print("  original sets: worst case over the per-block width rho in [1, t_2]")
     print("  W1_pr(gen): generic stabiliser |Stab|=q-1 ;  W1_pr(wc): worst |Stab|=q^gcd(lam,m)-1")
     print("=" * 96)
-    header = f"{'set':17} {'claim':>5} {'rho':>3} {'r_max':>5} {'W1_acc':>7} " \
-             f"{'W1_pr(gen)':>10} {'W1_pr(wc)':>9} {'|St|max':>7}  verdict"
+    print("  Ws_pr = Strassen (omega=2.807), OPERATIONAL; W_pr(3) conservative; W_pr(2.37) asymptotic ref")
+    header = f"{'set':17} {'claim':>5} {'rho':>3} {'r_max':>5} " \
+             f"{'Ws_pr(gen)':>10} {'Ws_pr(wc)':>10} {'W_pr3(gen)':>10} {'W_pr237':>8} {'|St|max':>7}  verdict"
     print(header)
     for (name, n1, k1, n2, k2, m, lam, claimed, rho_fixed) in GABKRON:
         n, k = n1 * n2, k1 * k2
@@ -141,17 +142,19 @@ def report_gabkron():
             p = n2 - rho - k2
             if p <= 0:
                 continue
-            n_eq = m * k * n1 * p
+            n_eq = m * k * p          # single-copy
             r_max = (k * p) // n
-            w1_pr = work_factor(n_eq, log2_trials_proven(m, lam), 2.37)
-            if worst is None or w1_pr > worst[0]:
-                w1_wc = work_factor(n_eq, log2_trials_proven(m, lam, stab=smax), 2.37)
-                w1_acc = work_factor(
-                    n_eq, log2_trials_accelerated(m, lam, r_max), 2.37)
-                worst = (w1_pr, w1_wc, w1_acc, rho, r_max)
-        w1_pr, w1_wc, w1_acc, rho, r_max = worst
-        print(f"{name:17} {claimed:>5} {rho:>3} {r_max:>5} {w1_acc:>7.1f} "
-              f"{w1_pr:>10.1f} {w1_wc:>9.1f} {smax:>7}  {verdict(w1_wc, claimed)}")
+            # rank the worst case (max W) by the operational Strassen exponent
+            ws_gen = work_factor(n_eq, log2_trials_proven(m, lam), 2.8074)
+            if worst is None or ws_gen > worst[0]:
+                ws_wc = work_factor(n_eq, log2_trials_proven(m, lam, stab=smax), 2.8074)
+                w3_gen = work_factor(n_eq, log2_trials_proven(m, lam), 3.0)
+                w237_gen = work_factor(n_eq, log2_trials_proven(m, lam), 2.37)
+                worst = (ws_gen, ws_wc, w3_gen, w237_gen, rho, r_max)
+        ws_gen, ws_wc, w3_gen, w237_gen, rho, r_max = worst
+        print(f"{name:17} {claimed:>5} {rho:>3} {r_max:>5} "
+              f"{ws_gen:>10.1f} {ws_wc:>10.1f} {w3_gen:>10.1f} {w237_gen:>8.1f} {smax:>7}  "
+              f"{verdict(ws_wc, claimed)}")
 
 
 def report_single(rows, kind, title):
@@ -159,8 +162,8 @@ def report_single(rows, kind, title):
     print("=" * 84)
     print(title)
     print("=" * 84)
-    print(f"{'set':12} {'lam':>3} {'claim':>5} {'r_max':>5} {'W1_acc':>7} "
-          f"{'W1_pr':>7} {'W2_pr':>7}  verdict (W1_pr)")
+    print(f"{'set':12} {'lam':>3} {'claim':>5} {'r_max':>5} "
+          f"{'Ws_pr(2.8)':>10} {'W_pr(3)':>8} {'W_pr(2.37)':>10}  verdict (operational Ws_pr)")
     for row in rows:
         if kind == "L":
             name, m, n, k, gamma, lam, claimed = row
@@ -171,11 +174,11 @@ def report_single(rows, kind, title):
             k_prime = k - ell
             n_eq = m * k_prime * (n - k)
             r_max = (k_prime * (n - k)) // n
-        w1_acc = work_factor(n_eq, log2_trials_accelerated(m, lam, r_max), 2.37)
-        w1_pr = work_factor(n_eq, log2_trials_proven(m, lam), 2.37)
-        w2_pr = work_factor(n_eq, log2_trials_proven(m, lam), 3.0)
-        print(f"{name:12} {lam:>3} {claimed:>5} {r_max:>5} {w1_acc:>7.1f} "
-              f"{w1_pr:>7.1f} {w2_pr:>7.1f}  {verdict(w1_pr, claimed)}")
+        ws_pr = work_factor(n_eq, log2_trials_proven(m, lam), 2.8074)  # Strassen, OPERATIONAL
+        w2_pr = work_factor(n_eq, log2_trials_proven(m, lam), 3.0)     # conservative
+        w1_pr = work_factor(n_eq, log2_trials_proven(m, lam), 2.37)    # asymptotic reference
+        print(f"{name:12} {lam:>3} {claimed:>5} {r_max:>5} "
+              f"{ws_pr:>10.1f} {w2_pr:>8.1f} {w1_pr:>10.1f}  {verdict(ws_pr, claimed)}")
 
 
 def sanity_checks():
