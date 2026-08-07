@@ -6,7 +6,7 @@ The Burle distinguishing mechanism needs MORE equations than unknowns, U <= E, i
     n*r <= k*p   =>   r* = floor(k*p / n)      (largest r keeping it over-determined),
 subject to r* >= lambda.  The trial exponent is ((lambda-1)m - lambda r*)*log2(q):
 
-    log2 W = omega*log2(m*k*n1*p) + ((lambda-1)*m - lambda*r*) * log2(q).
+    log2 W = omega*log2(m*k*p)  (single-copy) + ((lambda-1)*m - lambda*r*) * log2(q).
 
 (GabKron: n=n1*n2, k=k1*k2, p=n2-t1-k2.)
 
@@ -134,7 +134,7 @@ for (nm,m,n,k,l,cl) in [("ModI-136",85,85,43,2,136),("ModI-203",98,98,50,3,203),
         ws,w3,w237=triple(neq,m,lam,r)
         print(f"  {nm:<10}{lam:>4}{r:>4}{b(ws,cl):>10}{b(w3,cl):>9}{b(w237,cl):>10}")
 
-print("\n  (omega=2.37 and omega=3 must be unchanged):")
+print("\n CROSS-CHECK vs previously verified values (omega=2.37 and omega=3 must be unchanged):")
 _,_,_,_,g128hi = scan_original("GabKron-128",2,2,24,12,2,48,3,128)
 print(f"   GabKron-128 max: W(2.807)={g128hi[2]:.1f}  W(3)={g128hi[3]:.1f}  W(2.37)={g128hi[4]:.1f}  at t1={g128hi[0]}")
 _k=2*40; _n=2*128; _p=128-8-40; _r=rstar(_k,_p,_n)
