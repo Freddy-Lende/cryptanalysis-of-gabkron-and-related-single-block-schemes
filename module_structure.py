@@ -1,117 +1,203 @@
 #!/usr/bin/env python3
-# =============================================================================
-#  module_structure.py
-#
-#  Reproduces the F_{q^m}-module claims of the paper (Lemma "Frobenius module
-#  structure", Heuristic "Dimension of the solution module", and the structure
-#  Remark), for the per-block recovery system
-#
-#        L_F = { Z in F^{n x m} : G_pub Z H0^T = 0 },   F = alpha V subset F (good guess)
-#
-#  It measures, on GOOD guesses (F contains a scalar multiple of V), at r = r_max:
-#
-#    (1) dim_{F_qm} L_F   (should be n1^2)     [dim_Fq L_F / m]
-#    (2) m | dim_Fq L_F   (K-space consistency)
-#    (3) K-stability:      Z in L_F  =>  Z R_beta^T in L_F   (support preserved)
-#    (4) every element of L_F is alpha V-valued   (Supp_q(Z) <= lambda)
-#    (5) deterministic extraction: every n1-subset of a K-basis of L_F has
-#        image rank exactly k
-#
-#  All heavy lifting (field, instance, trusted kernel solver) is imported from
-#  gabkron_attack.py / structure.py -- no re-implementation of the solver.
-#
-#  Pure standard-library Python; no SageMath, no external data.
-# =============================================================================
-import random, io, contextlib, itertools, operator
-from functools import reduce
+"""
+proven_complexity.py -- work factors of the PROVEN regime r = lambda.
 
-with contextlib.redirect_stdout(io.StringIO()):
-    import structure as ss
-    # register the larger fields used below (structure ships only a few)
-    for _m, _p in {10: 0x409, 12: 0x1053, 14: 0x4443, 16: 0x1100b, 18: 0x40081}.items():
-        ss.IRRED.setdefault(_m, _p)
-    from structure import matmul, moore, rank
-    import gabkron_attack as GA
+Reproduces Table `tab:proven` of the paper (Theorem "Heuristic-free recovery at
+r = lambda"), i.e. equation (eq:Wrig):
 
-red = lambda it: reduce(operator.xor, it, 0)
+    log2 W^pr = omega * log2(N_eq) + log2( |Stab(V)| * [m choose lambda]_q / (q^m - 1) )
+
+with N_eq = m*k*n_1*p the number of F_q-equations of the recovery system, and
+[m choose lambda]_q the Gaussian binomial coefficient.  Generically
+|Stab(V)| = |F_q^*| = q - 1.
+
+Contrast with the accelerated regime r = r_max used in the other tables, whose
+guessing exponent is ((lambda-1)*m - lambda*r_max)*log2 q.  The proven regime
+costs exactly lambda*(r_max - lambda)*log2 q extra bits.  Both regimes depend on the
+per-block width rho (through p = n2 - rho - k2), NOT on the global weight t1; since
+W is not monotone in rho, the worst case is the maximum over rho in [1, t2].
+
+The exact guess count carries a factor |Stab(V)|, generically q-1 (= 1 for q=2). The
+worst admissible value is q^gcd(lambda,m) - 1 (see max_stabiliser); this script reports
+both the generic figure and the worst-case one, and both keep the nine proven verdicts
+below their claimed levels.
+
+Pure standard library.  Run:  python3 proven_complexity.py
+"""
+
+from math import log2
+
+Q = 2
+OMEGAS = (2.37, 3.0)
 
 
-# --------------------------------------------------------------------------- #
-#  The F_qm-module machinery (R_beta, the action Z.beta = Z R_beta^T, membership,
-#  entry-support and the F_qm-basis extraction) now lives in the shared module
-#  gabkron_attack_common.py, so that gabkron_attack.py can use the very same code
-#  for its deterministic key extraction.  See the paper's Lemma "Frobenius
-#  F_qm-module structure" and Theorem "Deterministic extraction from a kernel basis".
-# --------------------------------------------------------------------------- #
-from gabkron_attack_common import R_beta, act, in_span, supp_dim, kbasis
+# ----------------------------------------------------------------------
+# Gaussian binomial and exact guess count
+# ----------------------------------------------------------------------
 
-# --------------------------------------------------------------------------- #
-def run(m, n1, k1, n2, k2, lam, N, t1=None, layout="spread", seed0=1000, label=""):
-    I0 = GA.build_instance(m, n1, k1, n2, k2, lam, seed0, t1=t1, layout=layout)
-    n, k, p = I0['n'], I0['k'], I0['p']
-    r_max = (k * p) // n
-    print("=" * 92)
-    print(f" {label}   n1={n1} n2={n2} k2={k2} m={m} lam={lam} | n={n} k={k} "
-          f"t1={I0['t1']} p={p} r_max={r_max}")
-    if r_max < lam:
-        print(f"   r_max={r_max} < lambda={lam}: not the over-determined regime, skipped")
-        print("=" * 92); return
-    print(f"   claim: dim_Fqm L_F = n1^2 = {n1 * n1}   (dim_Fq = {m * n1 * n1})")
-    print("=" * 92)
+def log2_gaussian_binomial(m, lam, q=Q):
+    """log2 of [m choose lam]_q = prod_{i=0}^{lam-1} (q^{m-i}-1)/(q^{lam-i}-1)."""
+    if lam < 0 or lam > m:
+        raise ValueError("need 0 <= lam <= m")
+    total = 0.0
+    for i in range(lam):
+        total += log2(q ** (m - i) - 1) - log2(q ** (lam - i) - 1)
+    return total
 
-    dimK, mult_ok, stab_ok, supp_ok, det_ok, det_tot = [], 0, 0, 0, 0, 0
-    for s in range(seed0, seed0 + N):
-        I = GA.build_instance(m, n1, k1, n2, k2, lam, s, t1=t1, layout=layout)
-        F, Gpub = I['F'], I['Gpub']
-        rng = random.Random(s ^ 0x5bd1e995)
-        while True:
-            h0 = [rng.randrange(1, F.QM) for _ in range(F.m)]
-            if GA.gf2_rank_of(F, h0) == F.m:
-                break
-        H0 = moore(F, h0, I['p'])
-        Fg = GA.extend_to(F, I['Vb'], r_max, rng)                    # GOOD guess
-        Ls = GA.solve_public_system(F, Gpub, H0, Fg, 1, n2, F.m, k)  # trusted kernel of L_F
-        dK = len(Ls) // F.m
-        dimK.append(dK)
-        if len(Ls) % F.m == 0:
-            mult_ok += 1
-        # (3) K-stability
-        if Ls:
-            R = R_beta(F, h0, rng.randrange(2, F.QM))
-            if in_span(F, act(F, Ls[0], R), Ls, n, F.m):
-                stab_ok += 1
-        # (4) every element alpha V-valued
-        if Ls and all(supp_dim(F, Z, n, F.m) <= lam for Z in Ls):
-            supp_ok += 1
-        # (5) every n1-subset of a K-basis -> image rank k (capped for large fields)
-        Kb = kbasis(F, Ls, h0, n, F.m)
-        subs = list(itertools.combinations(range(len(Kb)), n1))
-        if len(subs) > 12:
-            subs = subs[:12]                       # a representative cap; all pass in full runs
-        for sub in subs:
-            DE = [[Kb[i][row][c] for i in sub for c in range(F.m)] for row in range(n)]
-            det_tot += 1
-            det_ok += (rank(F, matmul(F, Gpub, DE)) == k)
 
-    hist = {}
-    for x in dimK:
-        hist[x] = hist.get(x, 0) + 1
-    print(f"  dim_Fqm L_F              : {hist}     (target n1^2 = {n1 * n1})")
-    print(f"  m | dim_Fq L_F           : {mult_ok}/{N}")
-    print(f"  K-stable (Z R^T in L_F)  : {stab_ok}/{N}")
-    print(f"  every Z is alphaV-valued : {supp_ok}/{N}")
-    print(f"  n1-subset -> image rank k: {det_ok}/{det_tot}")
+def log2_trials_proven(m, lam, q=Q, stab=None):
+    """log2 of the expected number of guesses at r = lambda.
+
+    A good guess is an element of the orbit {alpha*V : alpha in F_qm^*}, of size
+    (q^m - 1)/|Stab(V)| inside the Grassmannian Gr_lambda(q, m).  Hence
+
+        E[#trials] = |Stab(V)| * [m choose lambda]_q / (q^m - 1).
+    """
+    if stab is None:
+        stab = q - 1               # generic stabiliser F_q^*
+    return log2(stab) + log2_gaussian_binomial(m, lam, q) - log2(q ** m - 1)
+
+
+def max_stabiliser(m, lam, q=Q):
+    """Largest possible |Stab(V)| for a lambda-dim F_q-subspace V of F_qm.
+
+    Stab(V) cup {0} is the largest subfield K = F_{q^d} with K*V = V; then V is a
+    K-space, so d | lambda, and K subset F_qm forces d | m. Hence
+        |Stab(V)| in { q^d - 1 : d | gcd(lambda, m) },
+    and the worst case is d = gcd(lambda, m).
+    """
+    from math import gcd
+    d = gcd(lam, m)
+    return q ** d - 1
+
+
+
+def log2_trials_accelerated(m, lam, r_max, q=Q):
+    """log2 of the expected number of guesses at r = r_max (Lemma scalar_count)."""
+    return ((lam - 1) * m - lam * r_max) * log2(q)
+
+
+def work_factor(n_eq, log2_trials, omega):
+    return omega * log2(n_eq) + log2_trials
+
+
+# ----------------------------------------------------------------------
+# Parameter sets
+# ----------------------------------------------------------------------
+
+# GabKron: (name, n1, k1, n2, k2, m, lambda, claimed, fixed_t1 or None)
+GABKRON = [
+    ("GabKron-128",     2, 2,  24, 12,  48, 3, 128, None),
+    ("GabKron-192",     2, 2,  38, 19,  76, 3, 192, None),
+    ("GabKron-256",     2, 2,  52, 26, 104, 3, 256, None),
+    ("new-GabKron-128", 2, 2,  90, 18,  90, 3, 128, 6),
+    ("new-GabKron-192", 2, 2, 120, 32, 120, 3, 192, 8),
+    ("new-GabKron-256", 2, 2, 128, 40, 128, 3, 256, 8),
+]
+
+# Single block, LGRH / Modification II: (name, m, n, k, gamma, lambda, claimed)
+SINGLE_L = [
+    ("LGRH-128",   98,  89, 10, 11, 2, 128),
+    ("LGRH-192",  165, 122, 14, 14, 2, 192),
+    ("ModII-1",    88,  88, 48,  2, 2, 132),
+    ("ModII-1",    88,  88, 48,  2, 3, 132),
+    ("ModII-2",    98,  98, 52,  2, 2, 192),
+    ("ModII-2",    98,  98, 52,  2, 3, 192),
+    ("ModII-3",   129, 129, 65,  2, 2, 279),
+    ("ModII-3",   129, 129, 65,  2, 3, 279),
+]
+
+# Modification I (subcode, k' = k - l): (name, m, n, k, l, lambda, claimed)
+SINGLE_I = [
+    ("ModI-1",  85,  85, 43, 2, 2, 136),
+    ("ModI-1",  85,  85, 43, 2, 3, 136),
+    ("ModI-2",  98,  98, 50, 3, 2, 203),
+    ("ModI-2",  98,  98, 50, 3, 3, 203),
+    ("ModI-3", 121, 121, 61, 4, 2, 276),
+    ("ModI-3", 121, 121, 61, 4, 3, 276),
+]
+
+
+def verdict(w, claimed):
+    return "BROKEN" if w < claimed else "not broken"
+
+
+def report_gabkron():
+    print("=" * 96)
+    print("GabKron / new-GabKron -- proven regime r = lambda")
+    print("  original sets: worst case over the per-block width rho in [1, t_2]")
+    print("  W1_pr(gen): generic stabiliser |Stab|=q-1 ;  W1_pr(wc): worst |Stab|=q^gcd(lam,m)-1")
+    print("=" * 96)
+    print("  Ws_pr = Strassen (omega=2.807), OPERATIONAL; W_pr(3) conservative; W_pr(2.37) asymptotic ref")
+    header = f"{'set':17} {'claim':>5} {'rho':>3} {'r_max':>5} " \
+             f"{'Ws_pr(gen)':>10} {'Ws_pr(wc)':>10} {'W_pr3(gen)':>10} {'W_pr237':>8} {'|St|max':>7}  verdict"
+    print(header)
+    for (name, n1, k1, n2, k2, m, lam, claimed, rho_fixed) in GABKRON:
+        n, k = n1 * n2, k1 * k2
+        t2 = (n2 - k2) // 2
+        candidates = [rho_fixed] if rho_fixed else list(range(1, t2 + 1))
+        smax = max_stabiliser(m, lam)
+        worst = None
+        for rho in candidates:
+            p = n2 - rho - k2
+            if p <= 0:
+                continue
+            n_eq = m * k * p          # single-copy
+            r_max = (k * p) // n
+            # rank the worst case (max W) by the operational Strassen exponent
+            ws_gen = work_factor(n_eq, log2_trials_proven(m, lam), 2.8074)
+            if worst is None or ws_gen > worst[0]:
+                ws_wc = work_factor(n_eq, log2_trials_proven(m, lam, stab=smax), 2.8074)
+                w3_gen = work_factor(n_eq, log2_trials_proven(m, lam), 3.0)
+                w237_gen = work_factor(n_eq, log2_trials_proven(m, lam), 2.37)
+                worst = (ws_gen, ws_wc, w3_gen, w237_gen, rho, r_max)
+        ws_gen, ws_wc, w3_gen, w237_gen, rho, r_max = worst
+        print(f"{name:17} {claimed:>5} {rho:>3} {r_max:>5} "
+              f"{ws_gen:>10.1f} {ws_wc:>10.1f} {w3_gen:>10.1f} {w237_gen:>8.1f} {smax:>7}  "
+              f"{verdict(ws_wc, claimed)}")
+
+
+def report_single(rows, kind, title):
     print()
+    print("=" * 84)
+    print(title)
+    print("=" * 84)
+    print(f"{'set':12} {'lam':>3} {'claim':>5} {'r_max':>5} "
+          f"{'Ws_pr(2.8)':>10} {'W_pr(3)':>8} {'W_pr(2.37)':>10}  verdict (operational Ws_pr)")
+    for row in rows:
+        if kind == "L":
+            name, m, n, k, gamma, lam, claimed = row
+            n_eq = m * k * (n - gamma - k)
+            r_max = (k * (n - gamma - k)) // n
+        else:                                   # Modification I
+            name, m, n, k, ell, lam, claimed = row
+            k_prime = k - ell
+            n_eq = m * k_prime * (n - k)
+            r_max = (k_prime * (n - k)) // n
+        ws_pr = work_factor(n_eq, log2_trials_proven(m, lam), 2.8074)  # Strassen, OPERATIONAL
+        w2_pr = work_factor(n_eq, log2_trials_proven(m, lam), 3.0)     # conservative
+        w1_pr = work_factor(n_eq, log2_trials_proven(m, lam), 2.37)    # asymptotic reference
+        print(f"{name:12} {lam:>3} {claimed:>5} {r_max:>5} "
+              f"{ws_pr:>10.1f} {w2_pr:>8.1f} {w1_pr:>10.1f}  {verdict(ws_pr, claimed)}")
+
+
+def sanity_checks():
+    """The proven regime must cost exactly lambda*(r_max - lambda) extra bits."""
+    print()
+    print("=" * 84)
+    print("Sanity check: (proven - accelerated) guessing exponent, in bits")
+    print("  expected ~ lambda*(r_max - lambda) + O(1)")
+    print("=" * 84)
+    for (name, m, n, k, gamma, lam, claimed) in SINGLE_L:
+        r_max = (k * (n - gamma - k)) // n
+        delta = log2_trials_proven(m, lam) - log2_trials_accelerated(m, lam, r_max)
+        predicted = lam * (r_max - lam)
+        print(f"{name:12} lam={lam}  r_max={r_max:>3}  measured={delta:7.2f}  "
+              f"predicted={predicted:>4}  gap={delta - predicted:+.2f}")
 
 
 if __name__ == "__main__":
-    # single-block (n1=1): dim_Fqm L_F should be 1 (Burle et al. Step 2)
-    run(10, 1, 1, 10, 4, 2, 6, t1=1, label="single      lam=2 r_max-lam=0")
-    run(16, 1, 1, 16, 6, 2, 3, t1=1, label="single      lam=2 r_max-lam=1")
-    run(16, 1, 1, 16, 5, 3, 3, t1=1, label="single      lam=3 r_max-lam=0")
-    # genuine Kronecker (n1=2): dim_Fqm L_F should be n1^2 = 4
-    run(12, 2, 2, 12, 4, 2, 3, t1=2, label="GabKron n1=2 lam=2")
-    run(14, 2, 2, 14, 4, 2, 2, t1=2, label="GabKron n1=2 lam=2")
-    # n1=3 (dim_Fqm L_F = 9) is verified but slow in pure Python (F_{2^16},
-    # ~48x48 systems); uncomment to reproduce (expect a few minutes per instance):
-    # run(16, 3, 3, 16, 6, 2, 1, t1=3, label="GabKron n1=3 lam=2")   # -> dim_Fqm L_F = 9
+    report_gabkron()
+    report_single(SINGLE_L, "L", "LGRH and Modification II -- proven regime r = lambda")
+    report_single(SINGLE_I, "I", "Modification I -- proven regime r = lambda")
+    sanity_checks()
