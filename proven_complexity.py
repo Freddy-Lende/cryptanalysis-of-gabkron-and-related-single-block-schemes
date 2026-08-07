@@ -13,14 +13,17 @@ with N_eq = m*k*n_1*p the number of F_q-equations of the recovery system, and
 
 Contrast with the accelerated regime r = r_max used in the other tables, whose
 guessing exponent is ((lambda-1)*m - lambda*r_max)*log2 q.  The proven regime
-costs exactly lambda*(r_max - lambda)*log2 q extra bits.  Both regimes depend on the
-per-block width rho (through p = n2 - rho - k2), NOT on the global weight t1; since
-W is not monotone in rho, the worst case is the maximum over rho in [1, t2].
+costs exactly lambda*(r_max - lambda)*log2 q extra bits.  Both regimes use the single-copy
+count m*k*p (p = n2 - w - k2), for the public clearing width w >= rho (w = t1 = Colr_q(X)
+for the original sets, the per-block bound for new-GabKron); since W is not monotone in the
+width, the verdict is the worst case over the admissible public width w.
 
 The exact guess count carries a factor |Stab(V)|, generically q-1 (= 1 for q=2). The
 worst admissible value is q^gcd(lambda,m) - 1 (see max_stabiliser); this script reports
-both the generic figure and the worst-case one, and both keep the nine proven verdicts
-below their claimed levels.
+both the generic figure and the worst-stabiliser one (W_S^wc). Under the worst-stabiliser
+column, SEVEN parameter sets fall below their level with no heuristic: GabKron-192/256, the
+two larger lambda=2 Modification II sets, and the three lambda=2 Modification I sets
+(GabKron-128 and the smallest Modification II set are excluded).
 
 Pure standard library.  Run:  python3 proven_complexity.py
 """
