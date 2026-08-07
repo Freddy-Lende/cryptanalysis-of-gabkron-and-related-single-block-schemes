@@ -35,14 +35,21 @@ def single_copy():
             ("GabKron-192", 2, 2, 38, 19, 76, 3, 192),
             ("GabKron-256", 2, 2, 52, 26, 104, 3, 256)]
     for tag, om in (("2.807", STR), ("3", 3.0), ("2.37", 2.37)):
-        print(f"\n  omega={tag}: {'set':15}{'claim':>6}{'W_paper(t2)':>12}{'W_single(t2)':>13}{'drop':>6}")
+        print(f"\n  omega={tag}: {'set':15}{'claim':>6}{'W_paper(wc)':>12}{'W_single(wc)':>13}{'drop':>6}")
         for name, n1, k1, n2, k2, m, lam, cl in SETS:
             n, k = n1 * n2, k1 * k2
             t2 = (n2 - k2) // 2
-            p = n2 - t2 - k2
-            r = rstar(k, p, n)
-            Wp = _logW(m * k * n1 * p, m, lam, r, om)
-            Ws = _logW(m * k * p, m, lam, r, om)
+            # worst case over the public global rank t1 (decryption-safe), single-copy vs n1-copy
+            Wp = Ws = float("-inf")
+            for t1 in range(1, t2 + 1):
+                p = n2 - t1 - k2
+                if p <= 0:
+                    continue
+                r = rstar(k, p, n)
+                if r < lam:
+                    continue
+                Wp = max(Wp, _logW(m * k * n1 * p, m, lam, r, om))
+                Ws = max(Ws, _logW(m * k * p, m, lam, r, om))
             print(f"          {name:15}{cl:>6}{Wp:>12.1f}{Ws:>13.1f}{Wp - Ws:>6.1f}")
     print(f"\n  reduction = omega*log2(n1) = {STR:.2f}/3/2.37 bits for n1=2.")
 
