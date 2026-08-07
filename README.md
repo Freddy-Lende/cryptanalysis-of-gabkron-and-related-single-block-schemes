@@ -299,11 +299,6 @@ If this software contributes to your research, please cite the accompanying pape
   note   = {Preprint}
 }
 ```
-
-> **Note.** Before submission, archive the exact reviewed version: create a Git tag and
-> GitHub release for the submitted commit, and deposit that release on Zenodo to obtain a
-> DOI. Add the DOI here and in the paper's reproducibility section once assigned.
-
 ---
 
 ## License
