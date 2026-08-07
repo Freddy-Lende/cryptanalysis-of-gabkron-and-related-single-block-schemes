@@ -243,14 +243,17 @@ such gaps therefore remains a **heuristic extrapolation** — `success_probabili
 only the guessing probability, not the support containment itself.
 
 ### `global_complexity.py`
-Prices the unknown per-block width `rho`: compares the current verdict `max_rho W(rho)`, the
-honest enumeration cost `sum_rho W(rho)`, and the **global, search-free** value `W(t2)` (a
-single universal clearing to `n2 - t2` clean columns, `t2` public), which satisfies
-`W(t2) <= max_rho W <= sum_rho W`. Reports all three at the three exponents.
+Prices the unknown per-block width `rho` via the **public clearing width** `w >= rho` (the
+global rank `t1 = Colr_q(X)` for the original sets; the per-block bound for new-GabKron):
+clearing to `n2 - w` clean columns is decryption-safe (`lambda*t <= floor(p/2)` at `w = t1`,
+unlike the earlier `w = t2` choice, which can fail). The verdict is the worst case over the
+public width, `max_w W(w)`; the honest enumeration `sum_w W(w)` is reported for the case where
+`w` is not public. All at the three exponents, single-copy count `m*k*p`.
 
 ### `universal_validation.py`
-Confirms empirically that the single universal clearing at width `t2` decrypts instances whose
-*actual* `rho` is smaller (over-clearing is sound), so no `rho` enumeration is needed.
+Confirms empirically that clearing at the **public width** `w = t1` decrypts instances
+regardless of the per-block layout (spread vs concentrated), so no `rho` enumeration is needed
+(and that `lambda*t <= floor(p/2)` holds at `t1`, unlike the earlier `t2` choice).
 
 ### `consistency_checks.py`
 Bundles three checks: (6a) the **single-copy** work factor (`m*k*p`, not `m*k*n1*p`), showing
@@ -265,9 +268,11 @@ rank reaches `lambda*t`), and that no dim-`lambda'` guess yields a full-rank key
 published-weight ciphertext is not decrypted by the structural recovery alone.
 
 ### `residual_lambdap.py`
-Option 2 for new-GabKron: prices the residual decoding of the excess
-`delta = lambda*t - floor(p/2)`, with and without the residual cost, at the three exponents.
-For new-GabKron-256 the published-weight cost is `<= 252 < 256` (accelerated).
+new-GabKron at the published weight: prices the residual decoding with the correct
+error-erasure model, which needs `s >= 2*delta` support dimensions, at cost `[m,s]/[w,s]`.
+For new-GabKron-128/192/256 this is `324 / 312 / 344` bits -- all ABOVE the claimed level, so
+the published weight is NOT broken; only the weakened weight is. (The earlier `<= 252` figure
+was wrong: it used `s = delta` instead of `s >= 2*delta`.)
 
 ## Reproducibility
 
