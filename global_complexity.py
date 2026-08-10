@@ -9,7 +9,7 @@ GLOBAL rank t1 = Colr_q(X), which is a PUBLIC design parameter (the total distor
     per-block layout (Proposition 2 holds at width w = t1), so NO rho search is performed.
   * Decryption is preserved: at w = t1 the parity length is p = n2 - t1 - k2, and the
     designers' weight t = floor((n2-k2-2 t1)/(2 lambda)) gives
-        lambda t <= (n2-k2-2 t1)/2 = p/2 = radius,
+        lambda t <= (n2-k2-2 t1)/2 <= ⌊p/2⌋ = radius,
     so the recovered key decodes directly. (The earlier universal choice w = t2 does NOT
     preserve this: e.g. GabKron-256 with t1=1 has t=4, lambda t=12, but at w=t2=13 the
     radius is floor(13/2)=6 < 12 -- decryption fails. t1 is the correct public width.)
