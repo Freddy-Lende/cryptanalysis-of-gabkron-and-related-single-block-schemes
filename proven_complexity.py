@@ -7,7 +7,7 @@ r = lambda"), i.e. equation (eq:Wrig):
 
     log2 W^pr = omega * log2(N_eq) + log2( |Stab(V)| * [m choose lambda]_q / (q^m - 1) )
 
-with N_eq = m*k*n_1*p the number of F_q-equations of the recovery system, and
+with N_eq = m*k*p the number of F_q-equations of the recovery system, and
 [m choose lambda]_q the Gaussian binomial coefficient.  Generically
 |Stab(V)| = |F_q^*| = q - 1.
 
