@@ -6,7 +6,7 @@ masking subspace, dim lambda), applying D_F to a published ciphertext gives, per
 projected error  f = e D_F  of rank  w <= lambda*t, while the supercode ker(H0) uniquely
 corrects only  tau = floor(p/2),  p = n2 - t1 - k2.  The excess is  Delta = w - tau.
 
-WHY THE PUBLISHED WEIGHT IS NOT BROKEN (two routes, both above the security level):
+WHY THE PUBLISHED WEIGHT IS NOT BELOW THE SECURITY LEVEL (two routes, both above it):
 
 (1) GENERIC error-erasure decoding beyond the unique rank radius. To correct a rank-w error
     with a radius-tau code, guess s support dimensions to treat as erasures; the decoder
@@ -18,11 +18,11 @@ WHY THE PUBLISHED WEIGHT IS NOT BROKEN (two routes, both above the security leve
 
 (2) STRUCTURED decoding. Writing alpha V = <v_1,...,v_lambda> (known after recovery),
     D_F = sum_a v_a D^{(a)} with D^{(a)} over F_q, so  f = e D_F = sum_a v_a g_a  with
-    g_a = e D^{(a)} all supported on E = Supp(e) (dim t, secret). Recovering f amounts to
-    recovering E, i.e. the rank-t error e -- the scheme's OWN rank-decoding problem, tuned
-    to ~2^{claim}. Only one combined syndrome is available (not lambda independent ones), so
-    a Rank-Support-Learning speed-up does not directly apply; a dedicated structured attack
-    would have to be described and proven, and is not established here.
+    g_a = e D^{(a)} all supported on E = Supp(e) (dim t, secret). The lambda components share
+    this support, and D_F = (E_1 | ... | E_d) supplies SEVERAL structured blocks/syndromes --
+    but this is NOT a formal reduction to the underlying rank-t decoding instance. We do not
+    claim such a reduction: no cheaper exploitation of the shared-support structure is
+    established here, so the published weight remains OPEN.
 
 Conclusion: no residual route drops below the security level. new-GabKron is broken only at
 the WEAKENED weight t_weak = floor((n2-k2-2 t1)/(2 lambda)) (where lambda*t_weak <= floor(p/2),
@@ -60,13 +60,13 @@ def main():
         s = 2 * Delta
         cost = log2_gauss(m, s) - log2_gauss(w, s)
         t_weak = (n2 - k2 - 2 * t1) // (2 * lam)
-        verdict = "BROKEN" if cost < claim else "NOT broken (residual >= claim)"
+        verdict = "below claimed level" if cost < claim else "above claimed level (residual >= claim)"
         print(f"{nm:17}{m:>4}{w:>8}{p:>5}{tau:>5}{Delta:>6}{s:>6}{cost:>10.1f}"
               f"{t_weak:>8}{claim:>6}  {verdict}")
     print("-" * 104)
-    print(" Structured route (f = sum_a v_a g_a, g_a supported on E=Supp(e)) reduces to rank-t")
-    print(" decoding, i.e. the scheme's own RSD (~2^claim); one combined syndrome only, so no")
-    print(" direct RSL speed-up. Not established below the level.")
+    print(" Structured route (f = sum_a v_a g_a on E=Supp(e); D_F=(E_1|...|E_d) gives several")
+    print(" structured blocks): no formal reduction to the underlying rank decoding is")
+    print(" established here, and no cheaper exploitation of the shared support is shown.")
     print(" => Only the WEAKENED weight t_weak is broken; the published weight is OPEN.")
 
 
