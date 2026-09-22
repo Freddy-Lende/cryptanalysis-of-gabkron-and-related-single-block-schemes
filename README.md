@@ -24,7 +24,6 @@ dependencies are required.
 ├── sun_perblock.py
 ├── residual_perblock.py
 ├── gabkron_perblock_example.py
-├── gabkron_witness.py
 │
 ├── gabkron_attack.py
 │
@@ -58,6 +57,11 @@ python3 <script_name>.py
 ```
 
 No command-line arguments or external datasets are required.
+
+**Environment.** Tested with CPython 3.11 (standard library only --- no third-party
+packages, no network access). Each script prints, on standard output, the figures and
+tables it reproduces; running a script and comparing its printout to the corresponding
+table in the paper is the intended reproducibility check.
 
 ---
 
@@ -235,8 +239,9 @@ success probability at small sizes.
 
 ### `heuristic1_campaign.py`
 Tests Heuristic 1 directly, conditioned on a good guess `F = alphaV` extended to dimension
-`r_max`, so the two properties are checked separately: (H1a) the support of the recovered
-module is `alphaV`-valued (the genuine heuristic), and (H1b) the image rank equals `k`
+`r_max`, so the two properties are checked separately: (H1) the JOINT support of the recovered
+module has F_q-dimension `<= lambda` (the operational property required for decryption -- what
+`module_structure.py` tests), and (H1b) the image rank equals `k`
 (Theorem 2). Reports 95% confidence intervals over several `lambda`, `n1` and layouts. Large
 gaps `r_max - lambda` need `m > ~90` and are **not** reached here; the accelerated regime at
 such gaps therefore remains a **heuristic extrapolation** — `success_probability.py` bounds
@@ -257,8 +262,8 @@ regardless of the per-block layout (spread vs concentrated), so no `rho` enumera
 
 ### `consistency_checks.py`
 Bundles three checks: (6a) the **single-copy** work factor (`m*k*p`, not `m*k*n1*p`), showing
-the `omega*log2(n1)`-bit reduction; (5) Heuristic 1's actual claim `Supp_q(L_F) subseteq alphaV`
-(containment, not just `dim <= lambda`); and Theorem 1's full-rank extraction for **every**
+the `omega*log2(n1)`-bit reduction; (5) the STRONGER structural form (H1+) `Supp_q(L_F) subseteq alphaV`
+(containment; sufficient for, and stronger than, the operational `dim <= lambda` of H1); and Theorem 1's full-rank extraction for **every**
 `r in [lambda, r_max]`.
 
 ### `lambdap_support.py`
@@ -273,6 +278,34 @@ error-erasure model, which needs `s >= 2*delta` support dimensions, at cost `[m,
 For new-GabKron-128/192/256 this is `324 / 312 / 344` bits -- all ABOVE the claimed level, so
 the published weight is NOT broken; only the weakened weight is. (The earlier `<= 252` figure
 was wrong: it used `s = delta` instead of `s >= 2*delta`.)
+
+### `proven_complexity.py`
+Work factors of the **proven regime `r = lambda`** (paper: Theorem *Heuristic-free
+recovery at r = lambda*, equation `eq:Wrig`, Table `tab:proven`). At `r = lambda` a good
+guess forces `F = alpha V`, so the support bound holds by construction and the attack
+uses **no heuristic at all**.
+
+The guessing cost is computed with the **exact** Gaussian binomial,
+
+```
+E[#trials] = |Stab(V)| * [m choose lambda]_q / (q^m - 1),   |Stab(V)| = q-1 generically,
+```
+
+rather than the leading-order estimate used in the accelerated regime. The script prints,
+for all four schemes and both `omega in {2.37, 3}`, the accelerated figure `W1_acc`
+alongside the proven `W1_pr`, `W2_pr`, and ends with a sanity check confirming that the
+proven regime costs exactly `lambda*(r_max - lambda)` extra bits (up to the `O(1)` gap
+between the exact count and its estimate).
+
+Since `W^pr` does not depend on `r_max`, it decreases monotonically in the public width `w = t_1` through the
+polynomial factor alone: for the original GabKron sets the worst case over
+`w in [1, t_2]` is at `w = 1`, and that is what the table reports.
+
+```
+python3 proven_complexity.py
+```
+
+---
 
 ## Reproducibility
 
@@ -299,34 +332,13 @@ If this software contributes to your research, please cite the accompanying pape
   note   = {Preprint}
 }
 ```
+
+> **Note.** Before submission, archive the exact reviewed version: create a Git tag and
+> GitHub release for the submitted commit, and deposit that release on Zenodo to obtain a
+> DOI. Add the DOI here and in the paper's reproducibility section once assigned.
+
 ---
 
 ## License
 
 Released under the MIT License.
-
-### `proven_complexity.py`
-Work factors of the **proven regime `r = lambda`** (paper: Theorem *Heuristic-free
-recovery at r = lambda*, equation `eq:Wrig`, Table `tab:proven`). At `r = lambda` a good
-guess forces `F = alpha V`, so the support bound holds by construction and the attack
-uses **no heuristic at all**.
-
-The guessing cost is computed with the **exact** Gaussian binomial,
-
-```
-E[#trials] = |Stab(V)| * [m choose lambda]_q / (q^m - 1),   |Stab(V)| = q-1 generically,
-```
-
-rather than the leading-order estimate used in the accelerated regime. The script prints,
-for all four schemes and both `omega in {2.37, 3}`, the accelerated figure `W1_acc`
-alongside the proven `W1_pr`, `W2_pr`, and ends with a sanity check confirming that the
-proven regime costs exactly `lambda*(r_max - lambda)` extra bits (up to the `O(1)` gap
-between the exact count and its estimate).
-
-Since `W^pr` does not depend on `r_max`, it decreases monotonically in `t_1` through the
-polynomial factor alone: for the original GabKron sets the worst case over
-`t_1 in [1, t_2]` is at `t_1 = 1`, and that is what the table reports.
-
-```
-python3 proven_complexity.py
-```
