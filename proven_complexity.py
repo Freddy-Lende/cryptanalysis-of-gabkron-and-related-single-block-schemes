@@ -7,8 +7,9 @@ r = lambda"), i.e. equation (eq:Wrig):
 
     log2 W^pr = omega * log2(N_eq) + log2( |Stab(V)| * [m choose lambda]_q / (q^m - 1) )
 
-with N_eq = m*k*p the number of F_q-equations of the recovery system, and
-[m choose lambda]_q the Gaussian binomial coefficient.  Generically
+with N_eq = m*k*p (p = n2 - w - k2) the number of F_q-equations of the single-block
+system L_F that the attack actually solves (the full system (11) has solution space
+L_F^{n_1}), and [m choose lambda]_q the Gaussian binomial coefficient.  Generically
 |Stab(V)| = |F_q^*| = q - 1.
 
 Contrast with the accelerated regime r = r_max used in the other tables, whose
@@ -122,17 +123,17 @@ SINGLE_I = [
 
 
 def verdict(w, claimed):
-    return "BROKEN" if w < claimed else "not broken"
+    return "below claimed level" if w < claimed else "above claimed level"
 
 
 def report_gabkron():
     print("=" * 96)
     print("GabKron / new-GabKron -- proven regime r = lambda")
-    print("  original sets: worst case over the per-block width rho in [1, t_2]")
+    print("  original sets: worst case over the public clearing width w = t_1 in [1, t_2]")
     print("  W1_pr(gen): generic stabiliser |Stab|=q-1 ;  W1_pr(wc): worst |Stab|=q^gcd(lam,m)-1")
     print("=" * 96)
-    print("  Ws_pr = Strassen (omega=2.807), OPERATIONAL; W_pr(3) conservative; W_pr(2.37) asymptotic ref")
-    header = f"{'set':17} {'claim':>5} {'rho':>3} {'r_max':>5} " \
+    print("  Ws_pr = Strassen (omega=2.807) reference; W_pr(3) conservative; W_pr(2.37) asymptotic ref")
+    header = f"{'set':17} {'claim':>5} {'w':>3} {'r_max':>5} " \
              f"{'Ws_pr(gen)':>10} {'Ws_pr(wc)':>10} {'W_pr3(gen)':>10} {'W_pr237':>8} {'|St|max':>7}  verdict"
     print(header)
     for (name, n1, k1, n2, k2, m, lam, claimed, rho_fixed) in GABKRON:
@@ -147,7 +148,7 @@ def report_gabkron():
                 continue
             n_eq = m * k * p          # single-copy
             r_max = (k * p) // n
-            # rank the worst case (max W) by the operational Strassen exponent
+            # rank the worst case (max W) by the Strassen reference exponent
             ws_gen = work_factor(n_eq, log2_trials_proven(m, lam), 2.8074)
             if worst is None or ws_gen > worst[0]:
                 ws_wc = work_factor(n_eq, log2_trials_proven(m, lam, stab=smax), 2.8074)
@@ -166,7 +167,7 @@ def report_single(rows, kind, title):
     print(title)
     print("=" * 84)
     print(f"{'set':12} {'lam':>3} {'claim':>5} {'r_max':>5} "
-          f"{'Ws_pr(2.8)':>10} {'W_pr(3)':>8} {'W_pr(2.37)':>10}  verdict (operational Ws_pr)")
+          f"{'Ws_pr(2.8)':>10} {'W_pr(3)':>8} {'W_pr(2.37)':>10}  verdict (Strassen Ws_pr)")
     for row in rows:
         if kind == "L":
             name, m, n, k, gamma, lam, claimed = row
@@ -177,7 +178,7 @@ def report_single(rows, kind, title):
             k_prime = k - ell
             n_eq = m * k_prime * (n - k)
             r_max = (k_prime * (n - k)) // n
-        ws_pr = work_factor(n_eq, log2_trials_proven(m, lam), 2.8074)  # Strassen, OPERATIONAL
+        ws_pr = work_factor(n_eq, log2_trials_proven(m, lam), 2.8074)  # Strassen reference
         w2_pr = work_factor(n_eq, log2_trials_proven(m, lam), 3.0)     # conservative
         w1_pr = work_factor(n_eq, log2_trials_proven(m, lam), 2.37)    # asymptotic reference
         print(f"{name:12} {lam:>3} {claimed:>5} {r_max:>5} "
