@@ -15,9 +15,6 @@ two properties Heuristic 1 asserts, SEPARATELY:
 and, as a control, that a ge"""
 heuristic1_campaign.py  --  direct test of Heuristic 1, conditioned on a good guess.
 
-Review point: the end-to-end campaigns only reach r_max - lambda in {0,1,2}, whereas the
-published sets have gaps up to ~29, and the r = r_max regime is never really exercised.
-
 The fix is to test Heuristic 1 WITHOUT paying the guessing cost: we plant a correct guess
 F = alpha V extended to dimension r (so F contains alpha V by construction), then check the
 two properties Heuristic 1 asserts, SEPARATELY:
