@@ -12,7 +12,7 @@ Unified work factor (parity reference of p rows, D in V^{n x m}):
   - LGRH  / Modification II : p = n - gamma - k     (gamma = ell)
   - Modification I (X=0)    : p = n - k , dimension k' = k - ell  (so N_eq = m*k'*(n-k))
 
-The three exponents match the paper: omega = 2.8074 (Strassen, operational), omega = 3
+The three exponents match the paper: omega = 2.8074 (Strassen reference), omega = 3
 (conservative), and omega = 2.37 (Alman et al. 2025, asymptotic reference). NOTE: this
 script uses the leading-order guessing term ((lam-1)m - lam r*); the paper tables use the
 exact 1/S1 term of gabkron_complexity_perblock.py / proven_complexity.py, so those two
@@ -33,7 +33,7 @@ def workfactor(m, n, k, p, lam, omega, q=2):
 
 
 def verdict(val, claimed):
-    return "BROKEN" if val < claimed else "secure"
+    return "below claimed level" if val < claimed else "above claimed level"
 
 
 # ----------------------------------------------------------------------
