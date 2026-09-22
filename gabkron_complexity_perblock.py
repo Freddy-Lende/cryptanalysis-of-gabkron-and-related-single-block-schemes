@@ -1,5 +1,5 @@
 """
-Corrected work factors in the OVER-DETERMINED Burle regime (reviewer's central point).
+Corrected work factors in the OVER-DETERMINED Burle regime.
 
 For a guess F in Gr_r(q,m), the recovery system has
     U = m*n*r    unknowns over F_q   (D in M_{n,m}(F), n the code length)
