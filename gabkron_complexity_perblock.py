@@ -1,4 +1,6 @@
 """
+Corrected work factors in the OVER-DETERMINED Burle regime (reviewer's central point).
+
 For a guess F in Gr_r(q,m), the recovery system has
     U = m*n*r    unknowns over F_q   (D in M_{n,m}(F), n the code length)
     E = m*k*p    equations over F_q  (p = parity row count)
@@ -13,18 +15,18 @@ subject to r* >= lambda.  The trial exponent is ((lambda-1)m - lambda r*)*log2(q
 THREE linear-algebra exponents are reported, in decreasing order of realism:
     omega = 2.8074  (STRASSEN = log2 7): the smallest exponent achieved by an algorithm
                      one can actually run at these sizes (Strassen / Strassen-Winograd,
-                     and M4RI-style routines over F_2).  This is the OPERATIONAL column:
+                     and M4RI-style routines over F_2).  This is the Strassen reference column:
                      a value below the claimed level here is a concrete break.
     omega = 3       (schoolbook / plain Gaussian elimination): conservative proxy.
     omega = 2.37    (Alman et al. 2025, laser method on Coppersmith-Winograd powers):
                      an ASYMPTOTIC bound with no implementation at any realisable
                      dimension.  Reported for reference only; a break that appears solely
-                     in this column is flagged, never counted as operational.
+                     in this column is flagged, never counted as an implementable estimate.
 Pure Python (python3).
 """
 from math import log2
 
-STR = 2.8074  # Strassen exponent = log2(7), the operational floor over F_2
+STR = 2.8074  # Strassen exponent = log2(7), the Strassen reference over F_2
 
 def rstar(k, p, n):
     return (k * p) // n
@@ -87,7 +89,7 @@ NEW  = [("new-GabKron-128",2,2,90,18,2,90,3,128,6),
 
 print("="*104)
 print(" GabKron per-block W(t1)  --- OVER-DETERMINED Burle regime  r_max = floor(kp/n)")
-print(" Columns: W(2.807)=Strassen OPERATIONAL | W(3)=conservative | W(2.37)=asymptotic ref")
+print(" Columns: W(2.807)=Strassen reference | W(3)=conservative | W(2.37)=asymptotic ref")
 print(" Original sets: t1 not fixed, W(t1) non-monotone; MIN and MAX over t1 (max ranked by W@3).")
 print("="*104)
 print(f"{'scheme':<16}{'':<5}{'claimed':>8}{'t2':>4}{'t1':>4}{'r_max':>6}"
@@ -105,14 +107,14 @@ for (name,n1,k1,n2,k2,q,m,lam,cl,t1) in NEW:
     print(f"{name:<16}{'':<5}{cl:>8}{t2:>4}{t1:>4}{r:>6}"
           f"{b(ws,cl):>10}{b(w3,cl):>9}{b(w237,cl):>10}")
 print("-"*104)
-print(" (*..* below claimed. OPERATIONAL verdict = W(2.807); W(2.37) below-claim alone = asymptotic only.)")
+print(" (*..* below claimed. verdict = W(2.807) Strassen reference; W(2.37) below-claim alone = asymptotic only.)")
 
 print("\n"+"="*104); print(" LGRH   r*=floor(k(n-g-k)/n)   lambda=2"); print("="*104)
-print(f"{'set':<12}{'claimed':>8}{'r*':>4}{'W(2.807)':>10}{'W(3)':>9}{'W(2.37)':>10}  verdict (operational = 2.807)")
+print(f"{'set':<12}{'claimed':>8}{'r*':>4}{'W(2.807)':>10}{'W(3)':>9}{'W(2.37)':>10}  verdict (Strassen = 2.807)")
 print("-"*104)
 for row in [singlerow("LGRH-128",98,89,10,11,2,2,128), singlerow("LGRH-192",165,122,14,14,2,2,192)]:
     name,cl,lam,r,ws,w3,w237,ok = row
-    if ws<cl:      v="OPERATIONAL break (Strassen)"
+    if ws<cl:      v="below claimed level (Strassen)"
     elif w3<cl:    v="break at omega<=2.807"
     elif w237<cl:  v="ASYMPTOTIC ONLY (omega=2.37)"
     else:          v="not broken"
