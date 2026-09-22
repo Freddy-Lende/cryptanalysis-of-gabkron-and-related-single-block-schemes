@@ -1,14 +1,14 @@
 """
-consistency_checks.py  --  resolves the computational parts of reviewer points 5, 6, formal.
+consistency_checks.py  
 
 Run:  python3 consistency_checks.py
 
 (6a) Single-copy system: the attack solves ONE system G_pub Z H0^T = 0 (n1=1 -> m*k*p
      equations), not n1 copies (m*k*n1*p). Correct neq = m*k*p ; every work factor drops by
      omega*log2(n1). We print paper(n1-copy) vs single-copy at the three exponents.
-(5)  Heuristic 1's ACTUAL claim  Supp_q(L_F) subseteq alpha V  (containment in a scalar
-     multiple of V), verified directly -- not merely dim(support) <= lambda -- in the
-     accelerated regime r=r_max>lambda. (Large-gap r_max-lambda~29 stays a heuristic
+(5)  The STRONGER structural form (H1+)  Supp_q(L_F) subseteq alpha V  (containment in a
+     scalar multiple of V) -- sufficient for, and stronger than, the operational (H1)
+     dim(support) <= lambda -- verified directly in the accelerated regime r=r_max>lambda. (Large-gap r_max-lambda~29 stays a heuristic
      extrapolation: unreachable in pure Python.)
 (F)  Theorem 1 (full-rank extraction rk(G_pub D_F)=k) for EVERY r in [lambda, r_max], not
      only r=r_max, since Theorem 3 invokes it at r=lambda.
@@ -56,7 +56,7 @@ def single_copy():
 
 def heuristic1_containment():
     print("\n" + "=" * 92)
-    print(" (5) Heuristic 1 direct: Supp_q(L_F) subseteq alpha V  (containment, not just dim)")
+    print(" (5) Strong form (H1+): Supp_q(L_F) subseteq alpha V  (stronger than H1's dim <= lambda)")
     print("=" * 92)
     for (m, n1, k1, n2, k2, lam, t1, N) in [(16, 1, 1, 16, 6, 2, 1, 10),
                                             (16, 2, 2, 16, 6, 2, 1, 6),
