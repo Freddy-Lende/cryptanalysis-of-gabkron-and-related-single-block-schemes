@@ -21,7 +21,7 @@ Two experiments are provided.
       secret, until resolution+extraction+decryption succeed. The measured number of
       guesses is compared with the predicted q^{(lambda-1)m - lambda r_max}.
 
-Fixes over the previous version (reviewer's report, Sec. 3):
+Fixes over the previous version :
   * V is a UNIFORMLY RANDOM lambda-dimensional F_q-subspace (3.2);
   * every entry of P is a UNIFORM element of V, reject if singular (3.3);
   * the error rank t is the scheme value floor((n2-k2-2 t1)/(2 lambda)) and is required
@@ -176,9 +176,10 @@ def build_instance(m, n1, k1, n2, k2, lam, seed, t1=None, layout="spread"):
     n, k = n1 * n2, k1 * k2
     if t1 is None: t1 = n1                                 # default: one direction per block
     Vb = rand_subspace(F, lam, rng)                        # (3.2) uniformly random V
-    # reject the rare V with a non-trivial stabiliser, so |Stab(V)| = q-1 holds for every
-    # accepted key and the exact r=lambda orbit count is uniform (review point on
-    # "unconditional"); cf. stabiliser_check.py
+    # These experiments are CONDITIONED ON THE GENERIC STABILISER: we reject the rare V with a
+    # non-trivial stabiliser, so |Stab(V)| = q-1 holds for every accepted key and the r=lambda
+    # orbit count is uniform. This is an experimental convenience only -- the paper gives the
+    # worst-stabiliser bound analytically (not exercised here); cf. stabiliser_check.py.
     while stabiliser_size(F, Vb) != 1:
         Vb = rand_subspace(F, lam, rng)
     g2 = [F.pw(2, j) for j in range(n2)]; G2 = moore(F, g2, k2)
