@@ -137,8 +137,8 @@ runs two experiments:
 
 - **(A') Proven regime `r = lambda`.** The same pipeline with a guess of dimension exactly
   `lambda`. A good guess of that dimension containing `alpha V` must **equal** `alpha V`,
-  so every element of `L_F` is `alpha V`-valued by construction and the support test cannot
-  fail: this campaign validates the paper's Theorem *Heuristic-free recovery at
+  so the strong containment `Supp(L_F) subset alpha V` (H1+) holds by construction -- hence the
+  operational `dim Supp <= lambda` (H1) -- and the support test cannot fail: this campaign validates the paper's Theorem *Heuristic-free recovery at
   r = lambda* end to end, with **no heuristic involved**.
 
 - **(B) Complete attack.** The full public attack on a tiny instance, where `F` is
@@ -162,7 +162,13 @@ guesses at `r = r_max`:
 - `dim_{F_qm} L_F` (found equal to `n1^2`), and the consistency `m | dim_{F_q} L_F`;
 - **K-stability**: `Z in L_F  =>  Z R_beta^T in L_F`, where `R_beta` is multiplication
   by `beta` in the basis `h0` (so the action preserves the entry-support);
-- that **every** element of `L_F` is `alpha V`-valued (support `<= lambda`);
+- the **joint** support of an `F_qm`-basis of `L_F`: `dim_Fq Supp(L_F) <= lambda` (property
+  (H1), the operational requirement -- NOT identified with the stronger containment
+  `Supp(L_F) subset alpha V` (H1+));
+- **(C1)** the direct measurement `dim_Fq(ker_r G_pub cap F^n) = 0`, reported for all `n1`
+  (for `n1 >= 2` this is not implied by `dim L_F = n1^2`);
+- for small `m`, the number of distinct scalar images `gamma V` contained in `F` (a good
+  guess giving a single image `alpha V`);
 - **deterministic extraction**: concatenating an `F_qm`-basis of `L_F` yields an image
   of rank exactly `k` — no random sampling, and no need to know `dim L_F`.
 
@@ -201,8 +207,8 @@ with the over-determined guess dimension
 r_star = floor(k*p / n)
 ```
 
-and print the result for the three exponents `omega in {2.807, 3, 2.37}`: the operational
-Strassen exponent `2.807 = log2 7`, the conservative cubic `3`, and the asymptotic bound
+and print the result for the three exponents `omega in {2.807, 3, 2.37}`: the Strassen
+reference exponent `2.807 = log2 7`, the conservative cubic `3`, and the asymptotic bound
 `2.37` (Alman et al. 2025, reported for reference only). The guessing term uses the exact
 Gaussian `1/S1` (see `success_probability.py`), not its leading order.
 
